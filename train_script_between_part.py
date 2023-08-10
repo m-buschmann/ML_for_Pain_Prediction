@@ -10,9 +10,26 @@ from sklearn.preprocessing import LabelEncoder
 
 
 def trainingDL_between(model, X, y, task = 'regression', nfolds=5, groups=None):
+    """
+    Train and evaluate a machine learning model using cross-validation.
+
+    Parameters:
+    - model (sklearn.base.BaseEstimator or torch.nn.Module): The machine learning model to train.
+    - X (numpy.ndarray): Input data with shape (n_samples, n_features) or (n_samples, n_channels, n_time_points).
+    - y (numpy.ndarray): Target labels or values.
+    - task (str, optional): The task type, either 'regression' or 'classification'. Default is 'regression'.
+    - nfolds (int, optional): Number of folds for cross-validation. Default is 5.
+    - groups (numpy.ndarray, optional): Group labels for grouping samples in cross-validation. Default is None.
+
+    Returns:
+    - mean_score (float): Mean mean squared error (for regression) or accuracy (for classification) across folds.
+    - all_true_labels (list): List of true class labels or values across all validation folds.
+    - all_predictions (list): List of predicted class labels or values across all validation folds.
+    - score_test (float): Mean squared error (for regression) or accuracy (for classification) on the test set.
+    """
+    
     X = X.astype(np.float32)
 
-    
     # Convert categorical labels to integer indices
     label_encoder = LabelEncoder()
     y = label_encoder.fit_transform(y)
@@ -107,6 +124,25 @@ def trainingDL_between(model, X, y, task = 'regression', nfolds=5, groups=None):
 
 
 def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfolds=5, groups=None):
+    """
+    Perform nested cross-validation for training and evaluating a machine learning model.
+
+    Parameters:
+    - model (sklearn.base.BaseEstimator or torch.nn.Module): The machine learning model to train.
+    - X (numpy.ndarray): Input data with shape (n_samples, n_features) or (n_samples, n_channels, n_time_points).
+    - y (numpy.ndarray): Target labels or values.
+    - parameters (dict): Hyperparameter grid for GridSearchCV.
+    - task (str, optional): The task type, either 'regression' or 'classification'. Default is 'regression'.
+    - nfolds (int, optional): Number of folds for outer cross-validation. Default is 5.
+    - groups (numpy.ndarray, optional): Group labels for grouping samples in cross-validation. Default is None.
+
+    Returns:
+    - mean_score (float): Mean mean squared error (for regression) or accuracy (for classification) across outer folds.
+    - all_true_labels (list): List of true class labels or values across all outer validation folds.
+    - all_predictions (list): List of predicted class labels or values across all outer validation folds.
+    - score_test (list): List of mean squared error (for regression) or accuracy (for classification) on the test set for each outer fold.
+    - most_common_best_param (dict): Dictionary containing the most common best parameters from inner CV.
+    """
     # Initialize arrays to store true labels and predictions for each fold
     all_true_labels = []
     all_predictions = []   
