@@ -4,17 +4,18 @@ import torch
 from sklearn import datasets, linear_model, svm
 from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.model_selection import train_test_split, GroupKFold, KFold, GridSearchCV
+from sklearn.metrics import balanced_accuracy_score
 from collections import Counter
 from braindecode.models import ShallowFBCSPNet, EEGNetv4
 from braindecode import EEGClassifier
 from sklearn.ensemble import RandomForestClassifier
-from skorch.callbacks import Checkpoint, EarlyStopping, LRScheduler, ProgressBar
+from skorch.callbacks import Checkpoint, EarlyStopping, LRScheduler, ProgressBar, EpochScoring
 from train_script_between_part import trainingDL_between, training_nested_cv_between
 from train_script_within_part import training_nested_cv_within, trainingDL_within
+import train_script_between_part
 
 #TODO: compare first models
 #implement more
-#put all y on lists
 
 #____________________________________________________________________________
 #application of cross validation for different models
@@ -44,15 +45,22 @@ shallow_fbcsp_net = ShallowFBCSPNet(
     final_conv_length='auto',
 )
 
+# Define a balanced accuracy
+def balanced_accuracy(model, X, y=None):
+    # assume ds yields (X, y), e.g. torchvision.datasets.MNIST
+    y_true = [y for _, y in X]
+    y_pred = model.predict(X)
+    return balanced_accuracy_score(y_true, y_pred)
+
 # Create EEGClassifier with ShallowFBCSPNet as the model
 model = EEGClassifier(
     module=shallow_fbcsp_net,
     callbacks = [
-        #balanced acc
         Checkpoint,
         EarlyStopping,
         LRScheduler,
         ProgressBar,
+        EpochScoring(scoring=balanced_accuracy, lower_is_better=False),
     ],
     optimizer=torch.optim.Adam,
     max_epochs=20,
@@ -87,5 +95,5 @@ parameters = {"C": [1, 10, 100]}
 #model = RandomForestClassifier()
 #parameters = {"n_estimators": [1, 10, 100]}
 
-mean_score, all_true_labels, all_predictions, score_test = trainingDL_within(model, X, y, task='classification', groups=groups)
+mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task='classification', nfolds=3, groups=groups)
 #mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv(model, X, y, parameters = parameters, task = 'classification', nfolds=3, groups=groups)
