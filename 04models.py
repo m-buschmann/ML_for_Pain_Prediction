@@ -15,6 +15,7 @@ from train_script_within_part import training_nested_cv_within, trainingDL_withi
 import train_script_between_part
 
 #TODO: compare first models
+#TODO: test all loops
 #implement more
 
 #____________________________________________________________________________
@@ -96,4 +97,4 @@ parameters = {"C": [1, 10, 100]}
 #parameters = {"n_estimators": [1, 10, 100]}
 
 mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task='classification', nfolds=3, groups=groups)
-#mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv(model, X, y, parameters = parameters, task = 'classification', nfolds=3, groups=groups)
+#mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_between(model, X, y, parameters = parameters, task = 'classification', nfolds=3, groups=groups)

@@ -89,11 +89,6 @@ def trainingDL_between(model, X, y, task = 'regression', nfolds=5, groups=None):
     mean_score = np.mean(scores)
     print("Mean Mean Squared Error(regression) or accuracy(classification) over all folds: {:.2f}".format(mean_score))
 
-
-    # Output the first 10 elements of true labels and predictions
-    print("True Labels (First 10 elements):", all_true_labels[:10])
-    print("Predictions (First 10 elements):", all_predictions[:10])
-
     # Test the model on completely new data
     score_test = []
     y_pred_test = pipe.predict(X_test)
@@ -106,6 +101,10 @@ def trainingDL_between(model, X, y, task = 'regression', nfolds=5, groups=None):
     y_pred_labels = label_encoder.inverse_transform(y_pred_test)
     # Append the predicted label strings to the list
     all_predictions.extend(y_pred_labels)
+
+    # Output the first 10 elements of true labels and predictions
+    print("True Labels (First 10 elements):", all_true_labels[:10])
+    print("Predictions (First 10 elements):", all_predictions[:10])
 
     if task == 'regression':
         score_test = mean_squared_error(y_test, y_pred_test)
