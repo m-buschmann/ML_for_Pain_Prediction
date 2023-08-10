@@ -6,6 +6,21 @@ from sklearn.metrics import accuracy_score, mean_squared_error
 from collections import Counter
 
 def trainingDL_within(model, X, y, task='classification', groups=None):
+    """
+    Train and evaluate a machine learning model using cross-validation within participants.
+
+    Parameters:
+    - model (sklearn.base.BaseEstimator or torch.nn.Module): The machine learning model to train.
+    - X (numpy.ndarray): Input data with shape (n_samples, n_features) or (n_samples, n_channels, n_time_points).
+    - y (numpy.ndarray): Target labels or values.
+    - task (str, optional): The task type, either 'regression' or 'classification'. Default is 'classification'.
+    - groups (numpy.ndarray, optional): Group labels for grouping samples by participants. Default is None.
+
+    Returns:
+    - mean_score (float): Mean accuracy (for classification) or mean squared error (for regression) across participants.
+    - all_true_labels (list): List of true class labels or values across all validation participants.
+    - all_predictions (list): List of predicted class labels or values across all validation participants.
+    """    
     # Initialize an array to store accuracy scores for each participant
     participant_scores = []
     # Initialize arrays to store true labels and predictions for each fold
@@ -63,6 +78,25 @@ def trainingDL_within(model, X, y, task='classification', groups=None):
     return mean_score, all_true_labels, all_predictions
 
 def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfolds=5, groups=None):
+    """
+    Train and evaluate a machine learning model using nested cross-validation within participants.
+
+    Parameters:
+    - model (sklearn.base.BaseEstimator or torch.nn.Module): The machine learning model to train.
+    - X (numpy.ndarray): Input data with shape (n_samples, n_features) or (n_samples, n_channels, n_time_points).
+    - y (numpy.ndarray): Target labels or values.
+    - parameters (dict): Dictionary of hyperparameters for grid search.
+    - task (str, optional): The task type, either 'regression' or 'classification'. Default is 'regression'.
+    - nfolds (int, optional): Number of folds for outer cross-validation. Default is 5.
+    - groups (numpy.ndarray, optional): Group labels for grouping samples by participants. Default is None.
+
+    Returns:
+    - mean_score (float): Mean mean squared error (for regression) or accuracy (for classification) across participants and folds.
+    - all_true_labels (list): List of true class labels or values across all validation participants and folds.
+    - all_predictions (list): List of predicted class labels or values across all validation participants and folds.
+    - score_test (list): List of mean squared errors (for regression) or accuracies (for classification) for each participant and fold.
+    - most_common_best_param (str): Most common best parameter combination from grid search.
+    """
     # Initialize arrays to store true labels and predictions for each fold
     all_true_labels = []
     all_predictions = []   
