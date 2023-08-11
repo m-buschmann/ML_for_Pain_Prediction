@@ -12,7 +12,6 @@ from sklearn.ensemble import RandomForestClassifier
 from skorch.callbacks import Checkpoint, EarlyStopping, LRScheduler, ProgressBar, EpochScoring
 from train_script_between_part import trainingDL_between, training_nested_cv_between
 from train_script_within_part import training_nested_cv_within, trainingDL_within
-import train_script_between_part
 
 #TODO: compare first models
 #TODO: test all loops
@@ -42,7 +41,7 @@ shallow_fbcsp_net = ShallowFBCSPNet(
     in_chans=len(epochs.info['ch_names']),
     n_classes=5,
     #filter_time_length = 1,
-    input_window_samples=1000,
+    input_window_samples=X.shape[2],
     final_conv_length='auto',
 )
 
@@ -54,7 +53,7 @@ def balanced_accuracy(model, X, y=None):
     return balanced_accuracy_score(y_true, y_pred)
 
 # Create EEGClassifier with ShallowFBCSPNet as the model
-model = EEGClassifier(
+#model = EEGClassifier(
     module=shallow_fbcsp_net,
     callbacks = [
         Checkpoint,
@@ -65,36 +64,16 @@ model = EEGClassifier(
     ],
     optimizer=torch.optim.Adam,
     max_epochs=20,
-)
+#)
 parameters = {"C": [1, 10, 100]}
 
-"""model_params = {
-    'in_chans': len(epochs.info['ch_names']),
-    'n_classes': 5,
-    #'filter_time_length' : 1, #non negotiable
-    'input_window_samples': 1000,
-    'pool_mode' : 'mean',
-    'final_conv_length': 'auto',
-}
-
-model = NeuralNetClassifier(
-    EEGNetv4,
-    module__in_chans=model_params['in_chans'],
-    module__n_classes=model_params['n_classes'],
-    #module__filter_time_length=model_params['filter_time_length'],
-    module__input_window_samples=model_params['input_window_samples'],
-    module__pool_mode=model_params['pool_mode'],
-    module__final_conv_length=model_params['final_conv_length'],
-    optimizer=torch.optim.Adam,  # Set the optimizer here
-    max_epochs=20,  # Set the number of epochs
-)"""
-
-#model= LogisticRegression()   
+model= LogisticRegression()   
 #model = svm.SVC()
 parameters = {"C": [1, 10, 100]}
 
 #model = RandomForestClassifier()
 #parameters = {"n_estimators": [1, 10, 100]}
 
-mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task='classification', nfolds=3, groups=groups)
+mean_score, all_true_labels, all_predictions = training_nested_cv_within(model, X, y, parameters, task='classification', groups=groups)
 #mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_between(model, X, y, parameters = parameters, task = 'classification', nfolds=3, groups=groups)
+

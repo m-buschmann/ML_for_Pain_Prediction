@@ -84,7 +84,7 @@ def trainingDL_within(model, X, y, task='classification', groups=None):
 
     # Calculate the mean accuracy across all participants
     mean_score = np.mean(participant_scores)
-    print("Mean Accuracy/MSE across all participants: {:.2f}".format(mean_score))
+    print("Mean Accuracy/MSE across all participants: {:.3f}".format(mean_score))
 
     return mean_score, all_true_labels, all_predictions
 
