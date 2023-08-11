@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split, GroupKFold, KFold, GridSea
 from sklearn.metrics import accuracy_score, mean_squared_error
 from collections import Counter
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
-from sklearn.preprocessing import LabelEncoder
+
 
 
 def trainingDL_between(model, X, y, task = 'regression', nfolds=5, groups=None):
@@ -46,7 +46,6 @@ def trainingDL_between(model, X, y, task = 'regression', nfolds=5, groups=None):
     # Create a pipeline for preprocessing and classification
     pipe = make_pipeline(
         mne.decoding.Scaler(scalings='mean'), # Scale the data
-        mne.decoding.Vectorizer(), # Vectorize the data
         print(X.shape, "(n_epochs, n_channels, n_time_points)"),
         model
     )
@@ -75,19 +74,6 @@ def trainingDL_between(model, X, y, task = 'regression', nfolds=5, groups=None):
         pipe.fit(X_train, y_train)
         # Predict on the test set
         y_pred = pipe.predict(X_val)
-
-        # Convert the predicted integer indices to original class names
-        y_true_class_names = label_encoder.inverse_transform(y_val)
-        # Append the true class names to the list
-        all_true_labels.extend(y_true_class_names)
-        
-        y_pred_labels = label_encoder.inverse_transform(y_pred)
-        # Append the predicted label strings to the list
-        all_predictions.extend(y_pred_labels)
-
-        # Append true labels and predictions to the corresponding lists
-        """all_true_labels.extend(y_val) #also for test set?
-        all_predictions.extend(y_pred)"""
         
         if task == 'regression':
             mse = mean_squared_error(y_val, y_pred)
@@ -103,14 +89,22 @@ def trainingDL_between(model, X, y, task = 'regression', nfolds=5, groups=None):
     mean_score = np.mean(scores)
     print("Mean Mean Squared Error(regression) or accuracy(classification) over all folds: {:.2f}".format(mean_score))
 
+    # Test the model on completely new data
+    score_test = []
+    y_pred_test = pipe.predict(X_test)
+
+    # Convert the predicted integer indices to original class names
+    y_true_class_names = label_encoder.inverse_transform(y_test)
+    # Append the true class names to the list
+    all_true_labels.extend(y_true_class_names)
+    
+    y_pred_labels = label_encoder.inverse_transform(y_pred_test)
+    # Append the predicted label strings to the list
+    all_predictions.extend(y_pred_labels)
 
     # Output the first 10 elements of true labels and predictions
     print("True Labels (First 10 elements):", all_true_labels[:10])
     print("Predictions (First 10 elements):", all_predictions[:10])
-
-    # Test the model on completely new data
-    score_test = []
-    y_pred_test = pipe.predict(X_test)
 
     if task == 'regression':
         score_test = mean_squared_error(y_test, y_pred_test)

@@ -1,9 +1,11 @@
 import mne
 import numpy as np
+import torch
 from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import KFold, train_test_split, GridSearchCV
 from sklearn.metrics import accuracy_score, mean_squared_error
 from collections import Counter
+from sklearn.preprocessing import LabelEncoder
 
 def trainingDL_within(model, X, y, task='classification', groups=None):
     """
@@ -21,6 +23,13 @@ def trainingDL_within(model, X, y, task='classification', groups=None):
     - all_true_labels (list): List of true class labels or values across all validation participants.
     - all_predictions (list): List of predicted class labels or values across all validation participants.
     """    
+    X = X.astype(np.float32)
+
+    # Convert categorical labels to integer indices
+    label_encoder = LabelEncoder()
+    y = label_encoder.fit_transform(y)
+    y = torch.tensor(y, dtype=torch.int64)
+
     # Initialize an array to store accuracy scores for each participant
     participant_scores = []
     # Initialize arrays to store true labels and predictions for each fold
@@ -29,7 +38,6 @@ def trainingDL_within(model, X, y, task='classification', groups=None):
     # Create a pipeline for preprocessing and classification
     pipe = make_pipeline(
         mne.decoding.Scaler(scalings='mean'),  # Scale the data
-        mne.decoding.Vectorizer(),  # Vectorize the data
         model
     )
 
@@ -41,8 +49,6 @@ def trainingDL_within(model, X, y, task='classification', groups=None):
 
         # Get the data indices for the current participant
         participant_indices = np.where(groups == participant)[0]
-        print(participant_indices)
-        print(groups)
         # Split participant data into training and testing using train_test_split
         train_idx, test_idx = train_test_split(participant_indices, test_size=0.2, random_state=42)
         X_train, X_test = X[train_idx], X[test_idx]
@@ -53,9 +59,14 @@ def trainingDL_within(model, X, y, task='classification', groups=None):
         # Predict on the test set
         y_pred = pipe.predict(X_test)
 
-        # Append true labels and predictions to the corresponding lists
-        all_true_labels.extend(y_test) #also for test set?
-        all_predictions.extend(y_pred)
+        # Convert the predicted integer indices to original class names
+        y_true_class_names = label_encoder.inverse_transform(y_test)
+        # Append the true class names to the list
+        all_true_labels.extend(y_true_class_names)
+
+        y_pred_labels = label_encoder.inverse_transform(y_pred)
+        # Append the predicted label strings to the list
+        all_predictions.extend(y_pred_labels)
             
         if task == 'regression':
             mse = mean_squared_error(y_test, y_pred)
