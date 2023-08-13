@@ -58,16 +58,28 @@ def trainingDL_within(model, X, y, task='classification', groups=None):
         pipe.fit(X_train, y_train)
         # Predict on the test set
         y_pred = pipe.predict(X_test)
-
+            
         if task == 'regression':
             mse = mean_squared_error(y_test, y_pred)
             participant_scores.append(mse)
             print("Participant", participant, "MSE:", mse)
+            # Convert the list of tensors to a numpy array of floats
+            y_test = np.array([tensor.item() for tensor in y_test])
+            # Concatenate the NumPy arrays in the predictions list
+            y_pred = [prediction[0].item() for prediction in y_pred]
 
         if task == 'classification':
             accuracy = accuracy_score(y_test, y_pred)
             participant_scores.append(accuracy)
             print("Participant", participant, "Accuracy:", accuracy)
+            # Convert the predicted integer indices to original class names
+            y_test = label_encoder.inverse_transform(y_test)
+            y_pred = label_encoder.inverse_transform(y_pred)
+    
+    # Append the true class names to the list
+    all_true_labels.extend(y_test)
+    # Append the predicted label strings to the list
+    all_predictions.extend(y_pred)
 
     # Output the first 10 elements of true labels and predictions
     print("True Labels (First 10 elements):", all_true_labels[:10])

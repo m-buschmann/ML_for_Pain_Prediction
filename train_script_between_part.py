@@ -33,7 +33,7 @@ def trainingDL_between(model, X, y, task = 'regression', nfolds=5, groups=None):
     # Convert categorical labels to integer indices
     label_encoder = LabelEncoder()
     y = label_encoder.fit_transform(y)
-    y = torch.tensor(y, dtype=torch.int64)
+    y = torch.tensor(y, dtype=torch.float32)
 
     # Initialize GroupKFold with the desired number of folds
     gkf = GroupKFold(n_splits=nfolds)
@@ -95,10 +95,26 @@ def trainingDL_between(model, X, y, task = 'regression', nfolds=5, groups=None):
     if task == 'regression':
         score_test = mean_squared_error(y_test, y_pred_test)
         print("Mean Squared Error on Test Set:", score_test)
+        # Convert the list of tensors to a numpy array of floats
+        y_test = np.array([tensor.item() for tensor in y_test])
+        # Concatenate the NumPy arrays in the predictions list
+        y_pred_test = [prediction[0].item() for prediction in y_pred_test]
 
     if task == 'classification':
         score_test = accuracy_score(y_test, y_pred_test)
         print("Accuracy on Test Set:", score_test)
+        # Convert the predicted integer indices to original class names
+        y_test = label_encoder.inverse_transform(y_test)
+        y_pred_test = label_encoder.inverse_transform(y_pred_test)
+
+    # Append the true class names to the lis
+    all_true_labels.extend(y_test)
+    # Append the predicted label strings to the list
+    all_predictions.extend(y_pred_test)
+    
+    # Output the first 10 elements of true labels and predictions
+    print("True Labels (First 10 elements):", all_true_labels[:10])
+    print("Predictions (First 10 elements):", all_predictions[:10])
 
     return mean_score, all_true_labels, all_predictions, score_test
 
