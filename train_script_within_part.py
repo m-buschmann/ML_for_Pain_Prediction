@@ -59,15 +59,6 @@ def trainingDL_within(model, X, y, task='classification', groups=None):
         # Predict on the test set
         y_pred = pipe.predict(X_test)
 
-        # Convert the predicted integer indices to original class names
-        y_true_class_names = label_encoder.inverse_transform(y_test)
-        # Append the true class names to the list
-        all_true_labels.extend(y_true_class_names)
-
-        y_pred_labels = label_encoder.inverse_transform(y_pred)
-        # Append the predicted label strings to the list
-        all_predictions.extend(y_pred_labels)
-            
         if task == 'regression':
             mse = mean_squared_error(y_test, y_pred)
             participant_scores.append(mse)

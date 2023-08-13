@@ -14,7 +14,6 @@ from train_script_between_part import trainingDL_between, training_nested_cv_bet
 from train_script_within_part import training_nested_cv_within, trainingDL_within
 
 #TODO: compare first models
-#TODO: test all loops
 #implement more
 
 #____________________________________________________________________________
@@ -40,7 +39,6 @@ groups = epochs.metadata["participant_id"].values
 shallow_fbcsp_net = ShallowFBCSPNet(
     in_chans=len(epochs.info['ch_names']),
     n_classes=5,
-    #filter_time_length = 1,
     input_window_samples=X.shape[2],
     final_conv_length='auto',
 )
@@ -65,7 +63,6 @@ def balanced_accuracy(model, X, y=None):
     optimizer=torch.optim.Adam,
     max_epochs=20,
 #)
-parameters = {"C": [1, 10, 100]}
 
 model= LogisticRegression()   
 #model = svm.SVC()
