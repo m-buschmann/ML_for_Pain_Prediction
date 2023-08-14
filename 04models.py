@@ -16,13 +16,16 @@ import torch.nn as nn
 from braindecode.models.util import to_dense_prediction_model, get_output_shape
 from braindecode.training.losses import CroppedLoss
 from torch.nn import MSELoss
+from tensorboardX import SummaryWriter
+
 
 #____________________________________________________________________________
 # Application of cross validation for different models
 # Load data
 
 # Directory
-bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/cleaned_epo.fif'
+#bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/cleaned_epo.fif'
+bidsroot = '/home/mathilda/MITACS/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
 data_path = opj(bidsroot)
 # Load epochs oject
 epochs = mne.read_epochs(data_path, preload=True)
@@ -62,6 +65,7 @@ shallow_fbcsp_net = ShallowFBCSPNet(
     input_window_samples=X.shape[2],
     final_conv_length='auto',
 )
+#model_name = "shallowFBCSPNetClassification"
 
 # Create an instance of Deep4Net
 deep4net = Deep4Net(
@@ -70,6 +74,7 @@ deep4net = Deep4Net(
     input_window_samples=X.shape[2],
     final_conv_length='auto',
 )
+#model_name = "deep4netClassification"
 
 # Create EEGClassifiers
 """
@@ -87,9 +92,13 @@ model = EEGClassifier(
 )"""
 
 #model= LogisticRegression()
-#model = svm.SVC()
-#model = RandomForestClassifier()
+#model_name = "LogisticRegression"
 
+#model = svm.SVC()
+#model_name = "SVC"
+
+#model = RandomForestClassifier()
+#model_name = "RFClassifier"
 
 #____________________________________________________________________
 # Create EEGRegressors
@@ -106,6 +115,7 @@ shallow_fbcsp_net = ShallowFBCSPNet(
     input_window_samples=X.shape[2],
     final_conv_length='auto',
 )
+#model_name = "shallowFBCSPNetRegression"
 
 # Create an instance of Deep4Net
 deep4net = Deep4Net(
@@ -131,24 +141,42 @@ model = EEGRegressor(
     optimizer=torch.optim.Adam,
     max_epochs=20,
 )
+model_name = "deep4netRegression"
 
 #model = svm.SVR()
+#model_name = "SVR"
+
 #model = RandomForestRegressor()
+#model_name = "RFRegressor"
+
 #model = LinearRegression()  
+#model_name = "LinearRegression"
 
 #__________________________________________________________________
 # Training
 
 # Choose parameters for nested CV
+if model_name== "LinearRegression":
+    parameters = {"C": [1, 10, 100]}
+
 #parameters = {"C": [1, 10, 100]}
 #parameters = {"n_estimators": [1, 10, 100]}
 #parameters = {"fit_intercept": [True, False]}
 
 
 # Train the EEG model using cross-validation
+# Get writer for tensorboard
+writer = SummaryWriter(log_dir=f'/home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/logs/{model_name}/{cv}')
+cv = 'between'
 
 #mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_within(model, X, y, parameters, task='regression', groups=groups)
 #mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_between(model, X, y, parameters = parameters, task = 'regression', nfolds=3, groups=groups)
 
 #mean_score, all_true_labels, all_predictions = trainingDL_within(model, X, y, task='regression', groups=groups)
-mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task='regression', nfolds=3, groups=groups)
+mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task='regression', nfolds=3, groups=groups, writer=writer)
+
+# Close the SummaryWriter when done
+writer.close()
+
+# Run this in Terminal
+#tensorboard --logdi/home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/logs/deep4net
