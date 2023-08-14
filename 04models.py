@@ -34,7 +34,7 @@ X = epochs.get_data()
 
 # Rescale X to a bigger number
 X = X * 10e6
-y = epochs.metadata["rating"].values
+y = epochs.metadata["rating"].values #maybe also intensity
 #y = epochs.metadata["task"].values
 
 # Define the groups (participants) to avoid splitting them across train and test
@@ -94,6 +94,7 @@ model = EEGClassifier(
 #____________________________________________________________________
 # Create EEGRegressors
 
+#batchsize 8 -16
 optimizer_lr = 0.000625
 optimizer_weight_decay = 0
 n_classes_reg=1
@@ -122,7 +123,7 @@ model = EEGRegressor(
     #criterion__loss_function=torch.nn.functional.mse_loss,
     callbacks = [
         'neg_root_mean_squared_error',
-        Checkpoint,
+        Checkpoint(load_best=True),
         EarlyStopping,
         LRScheduler,
         ProgressBar,
