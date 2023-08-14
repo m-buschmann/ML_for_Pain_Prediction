@@ -26,9 +26,12 @@ bidsroot = '/home/mathilda/MITACS/Project/eeg_pain_v2/derivatives/cleaned epochs
 data_path = opj(bidsroot)
 # Load epochs oject
 epochs = mne.read_epochs(data_path, preload=True)
+# Exclude eog and misc channels
+epochs = epochs.pick_types(eeg=True) 
 
 # Set target and label data
 X = epochs.get_data()
+
 # Rescale X to a bigger number
 X = X * 10e6
 y = epochs.metadata["rating"].values
