@@ -7,6 +7,7 @@ from sklearn.metrics import accuracy_score, mean_squared_error
 from collections import Counter
 from sklearn.preprocessing import LabelEncoder
 from tensorboardX import SummaryWriter
+from sklearn.metrics import r2_score
 
 def trainingDL_within(model, X, y, task='classification', groups=None, writer=None):
     """
@@ -71,7 +72,9 @@ def trainingDL_within(model, X, y, task='classification', groups=None, writer=No
             y_pred = [prediction[0].item() for prediction in y_pred]
             #mse_mean = np.mean(participant_scores)
             writer.add_scalar('Train Loss/MSE', mse, train_iteration)
-
+            r2 = r2_score(y_test, y_pred)
+            writer.add_scalar('Test R-squared', r2, train_iteration)
+    
         if task == 'classification':
             accuracy = accuracy_score(y_test, y_pred)
             participant_scores.append(accuracy)
@@ -210,7 +213,7 @@ def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfol
             writer.add_scalar('Train Accuracy', accuracy, outer_train_iteration)
 
         outer_train_iteration+=1
-        
+
     # Calculate the score across all folds in the outer loop
     mean_score = np.mean(score_test)
     print("Mean Mean Squared Error(regression) or accuracy(classification) in total: {:.2f}".format(mean_score))

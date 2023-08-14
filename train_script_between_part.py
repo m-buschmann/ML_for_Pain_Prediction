@@ -7,6 +7,7 @@ from sklearn.metrics import accuracy_score, mean_squared_error
 from collections import Counter
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from tensorboardX import SummaryWriter
+from sklearn.metrics import r2_score
 
 
 
@@ -79,6 +80,9 @@ def trainingDL_between(model, X, y, task = 'regression', nfolds=5, groups=None, 
             scores.append(mse)
             print("Mean Squared Error in fold", i+1, ":", mse)
             writer.add_scalar('Train Loss/MSE', mse, i+1) 
+            # Calculate R-squared score
+            r2 = r2_score(y_val, y_pred)
+            writer.add_scalar('Train R-squared', r2, i+1)
 
         if task == 'classification':
             accuracy = accuracy_score(y_val, y_pred)
@@ -102,6 +106,8 @@ def trainingDL_between(model, X, y, task = 'regression', nfolds=5, groups=None, 
         # Concatenate the NumPy arrays in the predictions list
         y_pred_test = [prediction[0].item() for prediction in y_pred_test]
         writer.add_scalar('Test Loss/MSE', score_test)
+        r2 = r2_score(y_test, y_pred_test)
+        writer.add_scalar('Test R-squared', r2)
 
     if task == 'classification':
         score_test = accuracy_score(y_test, y_pred_test)

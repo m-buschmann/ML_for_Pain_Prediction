@@ -156,13 +156,18 @@ model_name = "deep4netRegression"
 # Training
 
 # Choose parameters for nested CV
-if model_name== "LinearRegression":
+if model_name == "LinearRegression":
     parameters = {"C": [1, 10, 100]}
-
-#parameters = {"C": [1, 10, 100]}
-#parameters = {"n_estimators": [1, 10, 100]}
-#parameters = {"fit_intercept": [True, False]}
-
+elif model_name == "LogisticRegression":
+    parameters = {"C": [1, 10, 100]}
+elif model_name == "SVC":
+    parameters = {"fit_intercept": [True, False]}
+elif model_name == "RFClassifier":
+    parameters = {"n_estimators": [1, 10, 100]}
+elif model_name == "SVR":
+    parameters = {"fit_intercept": [True, False]}
+elif model_name == "RFRegressor":
+    parameters = {"n_estimators": [1, 10, 100]}
 
 # Train the EEG model using cross-validation
 # Get writer for tensorboard
