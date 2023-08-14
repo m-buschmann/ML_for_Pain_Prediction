@@ -162,8 +162,6 @@ def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfo
     )
     X = preprocessing_pipe.fit_transform(X)
 
-    #inner_group = [] 
-
     # Outer cross-validation
     # Initialize GroupKFold with the desired number of folds
     outer = GroupKFold(nfolds)
@@ -172,7 +170,7 @@ def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfo
         y_train_outer, y_test_outer = y[train_index_outer], y[test_index_outer]
 
         inner_group = groups[train_index_outer]
-
+        inner_train_iteration = 0
         inner_scores = []
         # inner cross-validation
         inner = GroupKFold(2) #increase with more data
@@ -185,13 +183,15 @@ def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfo
             clf = GridSearchCV(model, parameters)
             clf.fit(X_train_inner, y_train_inner)
             inner_scores.append(clf.score(X_test_inner, y_test_inner))
-            writer.add_scalar('Train/Loss/MSE/Accuracy', clf.score(X_test_inner, y_test_inner), train_index_inner+1) 
+            writer.add_scalar('Train/Loss/MSE/Accuracy', clf.score(X_test_inner, y_test_inner), inner_train_iteration) 
 
             # Store best parameters for each fold
             best_params_fold = clf.best_params_
             best_params_counts.update([str(best_params_fold)])  # Convert to string for dictionary key
             best_params_per_fold[fold] = best_params_fold
 
+            inner_train_iteration+=1
+            
         # Calculate mean score for inner folds
         print("Inner mean score:", np.mean(inner_scores), fold+1 , '.fold',)
 

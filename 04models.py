@@ -179,4 +179,4 @@ mean_score, all_true_labels, all_predictions = trainingDL_within(model, X, y, ta
 writer.close()
 
 # Run this in Terminal
-#tensorboard --logdi/home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/logs/deep4net
+#tensorboard --logdir /home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/logs/deep4netRegression/between --port 6007
