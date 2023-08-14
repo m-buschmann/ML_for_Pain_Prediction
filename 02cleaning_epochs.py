@@ -6,7 +6,7 @@ from os.path import join as opj
 from autoreject import AutoReject
 
 
-# Set root directory
+"""# Set root directory
 bidsroot = '/home/mathilda/MITACS/Project/eeg_pain_v2/derivatives'
 
 # Create cleaned epochs dir
@@ -139,17 +139,15 @@ all_epochs.resample(250)
 # Save the final all_epochs object
 all_epochs.save(opj(bidsroot, 'cleaned_epo.fif'), overwrite=True)
 
-
-
-
+"""
 
 # Concatenate the two big epoch objects -> doesnt work, memory?
 all_epochs = None
-bidsroot ='/home/mathilda/MITACS/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs'
+bidsroot ='/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs'
 part = sorted([s for s in os.listdir(bidsroot) if "sub" in s])
 derivpath = opj(bidsroot)
 
-part = [p for p in part if p in ["sub-003_cleaned_epo.fif", "sub-004_cleaned_epo.fif" ,"sub-005_cleaned_epo.fif"]]
+part = [p for p in part if p in ["first_29_sub_cleaned_epo.fif", "second_sub_cleaned_epo.fif"]]
 
 # Create a generator function to yield the EpochsArray objects
 def epochs_generator(participants, bidsroot):
@@ -170,4 +168,4 @@ for epochs_clean in epochs_generator(part, bidsroot):
 all_epochs.resample(250)
 
 # Save the final all_epochs object
-all_epochs.save(opj(bidsroot, 'sub_3_to_5_cleaned_epo.fif'), overwrite=True)
+all_epochs.save(opj(bidsroot, 'cleaned_epo.fif'), overwrite=True)

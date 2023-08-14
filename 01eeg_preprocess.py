@@ -23,7 +23,7 @@ from meegkit import dss
 ###############################
 # Parameters
 ###############################
-bidsroot = '/home/mathilda/MITACS/Project/eeg_pain_v2'
+bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2'
 
 # Get participants
 part = sorted([s for s in os.listdir(bidsroot) if "sub-" in s])
