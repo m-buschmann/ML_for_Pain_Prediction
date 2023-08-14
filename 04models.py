@@ -149,5 +149,5 @@ model = EEGRegressor(
 #mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_within(model, X, y, parameters, task='regression', groups=groups)
 #mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_between(model, X, y, parameters = parameters, task = 'regression', nfolds=3, groups=groups)
 
-mean_score, all_true_labels, all_predictions = trainingDL_within(model, X, y, task='regression', groups=groups)
-#mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task='regression', nfolds=3, groups=groups)
+#mean_score, all_true_labels, all_predictions = trainingDL_within(model, X, y, task='regression', groups=groups)
+mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task='regression', nfolds=3, groups=groups)
