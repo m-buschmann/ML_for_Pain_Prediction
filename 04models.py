@@ -249,15 +249,13 @@ output_file = os.path.join(output_dir, f"{part}.csv")
 
 # Combine the lists into rows
 if cv == 'simple':
-    rows = zip([mean_score], [score_test], all_true_labels, all_predictions)
+    rows = zip([mean_score], [score_test], all_true_labels.tolist(), all_predictions.tolist())
 
     # Write the rows to a CSV file
     with open(output_file, 'w', newline='') as csvfile:
         csvwriter = csv.writer(csvfile)
         csvwriter.writerow(["Mean Score", "Test Score", "True Label", "Predicted Label"])  # Write header
-        for row in rows:
-            mean_scr, test_scr, true_labels, preds = row
-            csvwriter.writerow([mean_scr, test_scr, true_labels.tolist(), preds.tolist()])
+        csvwriter.writerows(rows)
 
 elif cv == 'nested':
     rows = zip([mean_score], [score_test], [most_common_best_param], all_true_labels, all_predictions)
