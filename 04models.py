@@ -45,8 +45,10 @@ groups = epochs.metadata["participant_id"].values
 # Create models: Classification
 
 n_chans = len(epochs.info['ch_names'])
-n_classes_clas=5
 input_window_samples=X.shape[2]
+n_classes_clas=5
+bsize = 4
+
 
 # Define a balanced accuracy
 def balanced_accuracy(model, X, y=None):
@@ -83,6 +85,7 @@ model = EEGClassifier(
         EpochScoring(scoring=balanced_accuracy, lower_is_better=False),
     ],
     optimizer=torch.optim.Adam,
+    batch_size = bsize,
     max_epochs=20,
 )"""
 
@@ -128,6 +131,7 @@ model = EEGRegressor(
         ProgressBar,
     ],
     optimizer=torch.optim.Adam,
+    batch_size = bsize,
     max_epochs=20,
 )
 
