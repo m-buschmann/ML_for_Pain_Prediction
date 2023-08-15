@@ -17,6 +17,16 @@ from braindecode.models.util import to_dense_prediction_model, get_output_shape
 from braindecode.training.losses import CroppedLoss
 from torch.nn import MSELoss
 from tensorboardX import SummaryWriter
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
+import matplotlib.pyplot as plt
+import numpy as np
+import csv
+
+# Set kind of Cross validation and task to perform 
+part = 'between' # 'between' or 'within' participant
+cv = 'simple' # 'simple' or 'nested' Cross Validation
+task = 'classification' # 'classification' or 'regression'
 
 
 #____________________________________________________________________________
@@ -24,8 +34,8 @@ from tensorboardX import SummaryWriter
 # Load data
 
 # Directory
-#bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/cleaned_epo.fif'
-bidsroot = '/home/mathilda/MITACS/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
+bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/cleaned_epo.fif'
+#bidsroot = '/home/mathilda/MITACS/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
 data_path = opj(bidsroot)
 # Load epochs oject
 epochs = mne.read_epochs(data_path, preload=True)
@@ -37,8 +47,8 @@ X = epochs.get_data()
 
 # Rescale X to a bigger number
 X = X * 10e6
-y = epochs.metadata["rating"].values #maybe also intensity
-#y = epochs.metadata["task"].values
+#y = epochs.metadata["rating"].values #maybe also intensity
+y = epochs.metadata["task"].values
 
 # Define the groups (participants) to avoid splitting them across train and test
 groups = epochs.metadata["participant_id"].values
@@ -67,7 +77,7 @@ shallow_fbcsp_net = ShallowFBCSPNet(
     input_window_samples=X.shape[2],
     final_conv_length='auto',
 )
-#model_name = "shallowFBCSPNetClassification"
+model_name = "shallowFBCSPNetClassification"
 
 # Create an instance of Deep4Net
 deep4net = Deep4Net(
@@ -79,7 +89,7 @@ deep4net = Deep4Net(
 #model_name = "deep4netClassification"
 
 # Create EEGClassifiers
-"""
+
 model = EEGClassifier(
     module=shallow_fbcsp_net,
     callbacks = [
@@ -92,7 +102,7 @@ model = EEGClassifier(
     optimizer=torch.optim.Adam,
     batch_size = bsize,
     max_epochs=20,
-)"""
+)
 
 #model= LogisticRegression()
 #model_name = "LogisticRegression"
@@ -128,7 +138,7 @@ deep4net = Deep4Net(
     final_conv_length='auto',
 )
 
-model = EEGRegressor(
+"""model = EEGRegressor(
     module=deep4net,
     criterion=MSELoss(),
     #cropped=True,
@@ -146,7 +156,7 @@ model = EEGRegressor(
     max_epochs=20,
 )
 model_name = "deep4netRegression"
-
+"""
 #model = svm.SVR()
 #model_name = "SVR"
 
@@ -175,17 +185,66 @@ elif model_name == "RFRegressor":
 
 # Train the EEG model using cross-validation
 # Get writer for tensorboard
-cv = 'between'
-writer = SummaryWriter(log_dir=f'/home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/logs/{model_name}/{cv}')
+#writer = SummaryWriter(log_dir=f'/home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/logs/{model_name}/{part}')
+writer= SummaryWriter(log_dir=f'/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/logs/{model_name}/{part}')
 
-#mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_within(model, X, y, parameters, task='regression', groups=groups, writer=writer)
-#mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_between(model, X, y, parameters = parameters, task = 'regression', nfolds=3, groups=groups, writer=writer)
+#mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_within(model, X, y, parameters, task=task, groups=groups, writer=writer)
+#mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_between(model, X, y, parameters = parameters, task =task, nfolds=3, groups=groups, writer=writer)
 
-mean_score, all_true_labels, all_predictions = trainingDL_within(model, X, y, task='regression', groups=groups, writer=writer)
-#mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task='regression', nfolds=3, groups=groups, writer=writer)
+mean_score, all_true_labels, all_predictions, score_test = trainingDL_within(model, X, y, task=task, groups=groups, writer=writer)
+#mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task=task, nfolds=3, groups=groups, writer=writer)
 
 # Close the SummaryWriter when done
 writer.close()
 
-# Run this in Terminal
+# Specify the file path for storing the results
+output_file = f"results{model_name}/{part}.csv"
+
+# Combine the lists into rows
+if cv == 'simple':
+    rows = zip(mean_score, score_test, all_true_labels, all_predictions)
+
+    # Write the rows to a CSV file
+    with open(output_file, 'w', newline='') as csvfile:
+        csvwriter = csv.writer(csvfile)
+        csvwriter.writerow(["Mean Score", "Test Score", "True Label", "Predicted Label"])  # Write header
+        csvwriter.writerows(rows)
+
+elif cv == 'nested':
+    rows = zip(mean_score, score_test, most_common_best_param, all_true_labels, all_predictions)
+
+    # Write the rows to a CSV file
+    with open(output_file, 'w', newline='') as csvfile:
+        csvwriter = csv.writer(csvfile)
+        csvwriter.writerow(["Mean Score", "Test Score", "Best Parameters", "True Label", "Predicted Label"])  # Write header
+        csvwriter.writerows(rows)
+
+# For classification, build a confusion matrix
+if task == 'classification':
+    target_names = ["thermalrate", "auditoryrate", "thermal", "auditory", "rest"]
+
+    # Convert the lists to numpy arrays
+    all_true_labels = np.array(all_true_labels)
+    all_predictions = np.array(all_predictions)
+
+    # Compute the confusion matrix
+    cm = confusion_matrix(all_true_labels, all_predictions)
+    cm_normalized = cm.astype(float) / cm.sum(axis=1)[:, np.newaxis]
+
+    # Plot confusion matrix
+    fig, ax = plt.subplots(1)
+    im = ax.imshow(cm_normalized, interpolation="nearest", cmap=plt.cm.Blues)
+    ax.set(title="Normalized Confusion matrix")
+    fig.colorbar(im)
+    tick_marks = np.arange(len(target_names))
+    plt.xticks(tick_marks, target_names, rotation=45)
+    plt.yticks(tick_marks, target_names)
+    fig.tight_layout()
+    ax.set(ylabel="True label", xlabel="Predicted label")
+
+    # Save the confusion matrix plot as an image file
+    output_file = f"images/confusion_matrix{model_name}/{part}.png"
+    plt.savefig(output_file)
+
+# Run this in Terminal to see tensorboard
 #tensorboard --logdir /home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/logs/deep4netRegression/between --port 6007

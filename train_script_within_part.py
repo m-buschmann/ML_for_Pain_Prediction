@@ -101,7 +101,8 @@ def trainingDL_within(model, X, y, task='classification', groups=None, writer=No
     mean_score = np.mean(participant_scores)
     print("Mean Accuracy/MSE across all participants: {:.3f}".format(mean_score))
     writer.close()
-    return mean_score, all_true_labels, all_predictions
+    score_test = 0
+    return mean_score, all_true_labels, all_predictions, score_test
 
 def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfolds=5, groups=None, writer=None):
     """
