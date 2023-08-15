@@ -16,13 +16,16 @@ import torch.nn as nn
 from braindecode.models.util import to_dense_prediction_model, get_output_shape
 from braindecode.training.losses import CroppedLoss
 from torch.nn import MSELoss
+from tensorboardX import SummaryWriter
+
 
 #____________________________________________________________________________
 # Application of cross validation for different models
 # Load data
 
 # Directory
-bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/cleaned_epo.fif'
+#bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/cleaned_epo.fif'
+bidsroot = '/home/mathilda/MITACS/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
 data_path = opj(bidsroot)
 # Load epochs oject
 epochs = mne.read_epochs(data_path, preload=True)
@@ -34,7 +37,7 @@ X = epochs.get_data()
 
 # Rescale X to a bigger number
 X = X * 10e6
-y = epochs.metadata["rating"].values
+y = epochs.metadata["rating"].values #maybe also intensity
 #y = epochs.metadata["task"].values
 
 # Define the groups (participants) to avoid splitting them across train and test
@@ -64,6 +67,7 @@ shallow_fbcsp_net = ShallowFBCSPNet(
     input_window_samples=X.shape[2],
     final_conv_length='auto',
 )
+#model_name = "shallowFBCSPNetClassification"
 
 # Create an instance of Deep4Net
 deep4net = Deep4Net(
@@ -72,6 +76,7 @@ deep4net = Deep4Net(
     input_window_samples=X.shape[2],
     final_conv_length='auto',
 )
+#model_name = "deep4netClassification"
 
 # Create EEGClassifiers
 """
@@ -90,13 +95,18 @@ model = EEGClassifier(
 )"""
 
 #model= LogisticRegression()
-#model = svm.SVC()
-#model = RandomForestClassifier()
+#model_name = "LogisticRegression"
 
+#model = svm.SVC()
+#model_name = "SVC"
+
+#model = RandomForestClassifier()
+#model_name = "RFClassifier"
 
 #____________________________________________________________________
 # Create EEGRegressors
 
+#batchsize 8 -16
 optimizer_lr = 0.000625
 optimizer_weight_decay = 0
 n_classes_reg=1
@@ -108,6 +118,7 @@ shallow_fbcsp_net = ShallowFBCSPNet(
     input_window_samples=X.shape[2],
     final_conv_length='auto',
 )
+#model_name = "shallowFBCSPNetRegression"
 
 # Create an instance of Deep4Net
 deep4net = Deep4Net(
@@ -125,7 +136,7 @@ model = EEGRegressor(
     #criterion__loss_function=torch.nn.functional.mse_loss,
     callbacks = [
         'neg_root_mean_squared_error',
-        Checkpoint,
+        Checkpoint(load_best=True),
         EarlyStopping,
         LRScheduler,
         ProgressBar,
@@ -134,24 +145,47 @@ model = EEGRegressor(
     batch_size = bsize,
     max_epochs=20,
 )
+model_name = "deep4netRegression"
 
 #model = svm.SVR()
+#model_name = "SVR"
+
 #model = RandomForestRegressor()
+#model_name = "RFRegressor"
+
 #model = LinearRegression()  
+#model_name = "LinearRegression"
 
 #__________________________________________________________________
 # Training
 
 # Choose parameters for nested CV
-#parameters = {"C": [1, 10, 100]}
-#parameters = {"n_estimators": [1, 10, 100]}
-#parameters = {"fit_intercept": [True, False]}
-
+if model_name == "LinearRegression":
+    parameters = {"C": [1, 10, 100]}
+elif model_name == "LogisticRegression":
+    parameters = {"C": [1, 10, 100]}
+elif model_name == "SVC":
+    parameters = {"fit_intercept": [True, False]}
+elif model_name == "RFClassifier":
+    parameters = {"n_estimators": [1, 10, 100]}
+elif model_name == "SVR":
+    parameters = {"fit_intercept": [True, False]}
+elif model_name == "RFRegressor":
+    parameters = {"n_estimators": [1, 10, 100]}
 
 # Train the EEG model using cross-validation
+# Get writer for tensorboard
+cv = 'between'
+writer = SummaryWriter(log_dir=f'/home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/logs/{model_name}/{cv}')
 
-#mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_within(model, X, y, parameters, task='regression', groups=groups)
-#mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_between(model, X, y, parameters = parameters, task = 'regression', nfolds=3, groups=groups)
+#mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_within(model, X, y, parameters, task='regression', groups=groups, writer=writer)
+#mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_between(model, X, y, parameters = parameters, task = 'regression', nfolds=3, groups=groups, writer=writer)
 
-#mean_score, all_true_labels, all_predictions = trainingDL_within(model, X, y, task='regression', groups=groups)
-mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task='regression', nfolds=3, groups=groups)
+mean_score, all_true_labels, all_predictions = trainingDL_within(model, X, y, task='regression', groups=groups, writer=writer)
+#mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task='regression', nfolds=3, groups=groups, writer=writer)
+
+# Close the SummaryWriter when done
+writer.close()
+
+# Run this in Terminal
+#tensorboard --logdir /home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/logs/deep4netRegression/between --port 6007

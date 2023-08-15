@@ -6,8 +6,10 @@ from sklearn.model_selection import KFold, train_test_split, GridSearchCV
 from sklearn.metrics import accuracy_score, mean_squared_error
 from collections import Counter
 from sklearn.preprocessing import LabelEncoder
+from tensorboardX import SummaryWriter
+from sklearn.metrics import r2_score
 
-def trainingDL_within(model, X, y, task='classification', groups=None):
+def trainingDL_within(model, X, y, task='classification', groups=None, writer=None):
     """
     Train and evaluate a machine learning model using cross-validation within participants.
 
@@ -43,6 +45,7 @@ def trainingDL_within(model, X, y, task='classification', groups=None):
 
     # Get unique participant IDs
     unique_participants = np.unique(groups)
+    train_iteration = 0
 
     # Loop over each participant
     for participant in unique_participants:
@@ -67,7 +70,11 @@ def trainingDL_within(model, X, y, task='classification', groups=None):
             y_test = np.array([tensor.item() for tensor in y_test])
             # Concatenate the NumPy arrays in the predictions list
             y_pred = [prediction[0].item() for prediction in y_pred]
-
+            #mse_mean = np.mean(participant_scores)
+            writer.add_scalar('Train Loss/MSE', mse, train_iteration)
+            r2 = r2_score(y_test, y_pred)
+            writer.add_scalar('Test R-squared', r2, train_iteration)
+    
         if task == 'classification':
             accuracy = accuracy_score(y_test, y_pred)
             participant_scores.append(accuracy)
@@ -75,7 +82,12 @@ def trainingDL_within(model, X, y, task='classification', groups=None):
             # Convert the predicted integer indices to original class names
             y_test = label_encoder.inverse_transform(y_test)
             y_pred = label_encoder.inverse_transform(y_pred)
+            #accuracy_mean = np.mean(participant_scores)
+            writer.add_scalar('Train Accuracy', accuracy, train_iteration)
     
+        # Increment the counter for the next training iteration
+        train_iteration += 1
+
     # Append the true class names to the list
     all_true_labels.extend(y_test)
     # Append the predicted label strings to the list
@@ -88,10 +100,10 @@ def trainingDL_within(model, X, y, task='classification', groups=None):
     # Calculate the mean accuracy across all participants
     mean_score = np.mean(participant_scores)
     print("Mean Accuracy/MSE across all participants: {:.3f}".format(mean_score))
-
+    writer.close()
     return mean_score, all_true_labels, all_predictions
 
-def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfolds=5, groups=None):
+def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfolds=5, groups=None, writer=None):
     """
     Train and evaluate a machine learning model using nested cross-validation within participants.
 
@@ -135,6 +147,7 @@ def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfol
     # Initialize GroupKFold with the desired number of folds
         # Get unique participant IDs
     unique_participants = np.unique(groups)
+    outer_train_iteration = 0
 
     # Loop over each participant
     for participant in unique_participants:
@@ -147,6 +160,7 @@ def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfol
         X_train_outer, X_test_outer = X[train_idx], X[test_idx]
         y_train_outer, y_test_outer = y[train_idx], y[test_idx]
 
+        inner_train_iteration = 0
         inner_scores = []
         # inner cross-validation
         inner = KFold(2) #increase with more data
@@ -159,12 +173,14 @@ def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfol
             clf = GridSearchCV(model, parameters)
             clf.fit(X_train_inner, y_train_inner)
             inner_scores.append(clf.score(X_test_inner, y_test_inner))
-            
+            writer.add_scalar('Train Loss/MSE/Accuracy', clf.score(X_test_inner, y_test_inner), inner_train_iteration)
+
             # Store best parameters for each fold
             best_params_fold = clf.best_params_
             best_params_counts.update([str(best_params_fold)])  # Convert to string for dictionary key
             best_params_per_fold[participant] = best_params_fold
 
+        inner_train_iteration+=1
         # Calculate mean score for inner folds
         print("Inner mean score:", np.mean(inner_scores), participant)
 
@@ -185,12 +201,18 @@ def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfol
 
         # MSEs or accuracies from outer loop
         if task == 'regression':
-            score_test.append(mean_squared_error(y_test_outer, y_pred_test))
+            mse = mean_squared_error(y_test_outer, y_pred_test)
+            score_test.append(mse)
             print("Mean Squared Error on Test Set:", score_test[-1], "in outer fold", participant)
+            writer.add_scalar('Train Loss/MSE', mse, outer_train_iteration)
 
         if task == 'classification':
-            score_test.append(accuracy_score(y_test_outer, y_pred_test))
+            accuracy = accuracy_score(y_test_outer, y_pred_test)
+            score_test.append(accuracy)
             print("Accuracy on Test Set:", score_test[-1], "in outer fold", participant)
+            writer.add_scalar('Train Accuracy', accuracy, outer_train_iteration)
+
+        outer_train_iteration+=1
 
     # Calculate the score across all folds in the outer loop
     mean_score = np.mean(score_test)
@@ -204,5 +226,5 @@ def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfol
     # Output the first 10 elements of true labels and predictions
     print("True Labels (First 10 elements):", all_true_labels[:10])
     print("Predictions (First 10 elements):", all_predictions[:10])
-
+    writer.close()
     return mean_score, all_true_labels, all_predictions, score_test, most_common_best_param

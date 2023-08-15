@@ -6,10 +6,12 @@ from sklearn.model_selection import train_test_split, GroupKFold, KFold, GridSea
 from sklearn.metrics import accuracy_score, mean_squared_error
 from collections import Counter
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+from tensorboardX import SummaryWriter
+from sklearn.metrics import r2_score
 
 
 
-def trainingDL_between(model, X, y, task = 'regression', nfolds=5, groups=None):
+def trainingDL_between(model, X, y, task = 'regression', nfolds=5, groups=None, writer=None):
     """
     Train and evaluate a machine learning model using cross-validation.
 
@@ -27,7 +29,6 @@ def trainingDL_between(model, X, y, task = 'regression', nfolds=5, groups=None):
     - all_predictions (list): List of predicted class labels or values across all validation folds.
     - score_test (float): Mean squared error (for regression) or accuracy (for classification) on the test set.
     """
-    
     X = X.astype(np.float32)
 
     # Convert categorical labels to integer indices
@@ -78,11 +79,16 @@ def trainingDL_between(model, X, y, task = 'regression', nfolds=5, groups=None):
             mse = mean_squared_error(y_val, y_pred)
             scores.append(mse)
             print("Mean Squared Error in fold", i+1, ":", mse)
+            writer.add_scalar('Train Loss/MSE', mse, i+1) 
+            # Calculate R-squared score
+            r2 = r2_score(y_val, y_pred)
+            writer.add_scalar('Train R-squared', r2, i+1)
 
         if task == 'classification':
             accuracy = accuracy_score(y_val, y_pred)
             scores.append(accuracy)
             print("Accuracy in fold", i+1, ":", accuracy)
+            writer.add_scalar('Train Accuracy', accuracy, i+1)
 
     # Calculate the mean mean squared error across all folds
     mean_score = np.mean(scores)
@@ -99,6 +105,9 @@ def trainingDL_between(model, X, y, task = 'regression', nfolds=5, groups=None):
         y_test = np.array([tensor.item() for tensor in y_test])
         # Concatenate the NumPy arrays in the predictions list
         y_pred_test = [prediction[0].item() for prediction in y_pred_test]
+        writer.add_scalar('Test Loss/MSE', score_test)
+        r2 = r2_score(y_test, y_pred_test)
+        writer.add_scalar('Test R-squared', r2)
 
     if task == 'classification':
         score_test = accuracy_score(y_test, y_pred_test)
@@ -106,6 +115,7 @@ def trainingDL_between(model, X, y, task = 'regression', nfolds=5, groups=None):
         # Convert the predicted integer indices to original class names
         y_test = label_encoder.inverse_transform(y_test)
         y_pred_test = label_encoder.inverse_transform(y_pred_test)
+        writer.add_scalar('Test Accuracy', score_test)
 
     # Append the true class names to the lis
     all_true_labels.extend(y_test)
@@ -115,11 +125,12 @@ def trainingDL_between(model, X, y, task = 'regression', nfolds=5, groups=None):
     # Output the first 10 elements of true labels and predictions
     print("True Labels (First 10 elements):", all_true_labels[:10])
     print("Predictions (First 10 elements):", all_predictions[:10])
-
+    # Close the SummaryWriter
+    writer.close()
     return mean_score, all_true_labels, all_predictions, score_test
 
 
-def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfolds=5, groups=None):
+def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfolds=5, groups=None, writer=None):
     """
     Perform nested cross-validation for training and evaluating a machine learning model.
 
@@ -157,8 +168,6 @@ def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfo
     )
     X = preprocessing_pipe.fit_transform(X)
 
-    #inner_group = [] 
-
     # Outer cross-validation
     # Initialize GroupKFold with the desired number of folds
     outer = GroupKFold(nfolds)
@@ -167,7 +176,7 @@ def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfo
         y_train_outer, y_test_outer = y[train_index_outer], y[test_index_outer]
 
         inner_group = groups[train_index_outer]
-
+        inner_train_iteration = 0
         inner_scores = []
         # inner cross-validation
         inner = GroupKFold(2) #increase with more data
@@ -180,12 +189,15 @@ def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfo
             clf = GridSearchCV(model, parameters)
             clf.fit(X_train_inner, y_train_inner)
             inner_scores.append(clf.score(X_test_inner, y_test_inner))
+            writer.add_scalar('Train/Loss/MSE/Accuracy', clf.score(X_test_inner, y_test_inner), inner_train_iteration) 
 
             # Store best parameters for each fold
             best_params_fold = clf.best_params_
             best_params_counts.update([str(best_params_fold)])  # Convert to string for dictionary key
             best_params_per_fold[fold] = best_params_fold
 
+            inner_train_iteration+=1
+            
         # Calculate mean score for inner folds
         print("Inner mean score:", np.mean(inner_scores), fold+1 , '.fold',)
 
@@ -208,10 +220,12 @@ def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfo
         if task == 'regression':
             score_test.append(mean_squared_error(y_test_outer, y_pred_test))
             print("Mean Squared Error on Test Set:", score_test[fold], "in outer fold", fold+1)
+            writer.add_scalar('Test Loss/MSE', score_test[fold], fold+1) 
 
         if task == 'classification':
             score_test.append(accuracy_score(y_test_outer, y_pred_test))
             print("Accuracy on Test Set:", score_test[fold], "in outer fold", fold+1)
+            writer.add_scalar('Test Accuracy', score_test[fold], fold+1) 
 
     # Calculate the score across all folds in the outer loop
     mean_score = np.mean(score_test)
@@ -224,7 +238,7 @@ def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfo
     # Output the first 10 elements of true labels and predictions
     print("True Labels (First 10 elements):", all_true_labels[:10])
     print("Predictions (First 10 elements):", all_predictions[:10])
-
+    writer.close()
     return mean_score, all_true_labels, all_predictions, score_test, most_common_best_param
 
     
