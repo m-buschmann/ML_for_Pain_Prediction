@@ -22,20 +22,22 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 import csv
+import os
 
 # Set kind of Cross validation and task to perform 
 part = 'between' # 'between' or 'within' participant
 cv = 'simple' # 'simple' or 'nested' Cross Validation
 task = 'classification' # 'classification' or 'regression'
-
+dl = True # Whether to use a deep learning or standard ML model
 
 #____________________________________________________________________________
 # Application of cross validation for different models
 # Load data
 
 # Directory
-bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/cleaned_epo.fif'
+#bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/cleaned_epo.fif'
 #bidsroot = '/home/mathilda/MITACS/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
+bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
 data_path = opj(bidsroot)
 # Load epochs oject
 epochs = mne.read_epochs(data_path, preload=True)
@@ -47,8 +49,12 @@ X = epochs.get_data()
 
 # Rescale X to a bigger number
 X = X * 10e6
-#y = epochs.metadata["rating"].values #maybe also intensity
-y = epochs.metadata["task"].values
+
+if task == 'classification':
+    y = epochs.metadata["task"].values  
+elif task == 'regression':
+    y = epochs.metadata["rating"].values #maybe also intensity
+
 
 # Define the groups (participants) to avoid splitting them across train and test
 groups = epochs.metadata["participant_id"].values
@@ -96,7 +102,7 @@ model = EEGClassifier(
         Checkpoint,
         EarlyStopping,
         LRScheduler,
-        ProgressBar,
+        #ProgressBar,
         EpochScoring(scoring=balanced_accuracy, lower_is_better=False),
     ],
     optimizer=torch.optim.Adam,
@@ -171,47 +177,90 @@ model_name = "deep4netRegression"
 
 # Choose parameters for nested CV
 if model_name == "LinearRegression":
-    parameters = {"C": [1, 10, 100]}
+    parameters = {
+        'fit_intercept': [True, False],
+        'positive': [True, False]
+    }
 elif model_name == "LogisticRegression":
-    parameters = {"C": [1, 10, 100]}
+    parameters = {
+        'penalty': ['l1', 'l2', 'elasticnet', 'none'],
+        'C': [0.1, 1, 10, 100],
+        'multi_class': ['ovr', 'multinomial'],
+        'class_weight': [None, 'balanced']
+    }
 elif model_name == "SVC":
-    parameters = {"fit_intercept": [True, False]}
-elif model_name == "RFClassifier":
-    parameters = {"n_estimators": [1, 10, 100]}
+    parameters = { 
+        'C': [0.1, 1, 10, 100],
+        'kernel': ['linear', 'poly', 'rbf', 'sigmoid'],
+        'gamma': ['scale', 'auto', 0.1, 1, 10],
+        'shrinking': [True, False],
+        'tol': [1e-3, 1e-4, 1e-5],
+        'class_weight': [None, 'balanced'],
+        'decision_function_shape': ['ovr', 'ovo'],
+    }
 elif model_name == "SVR":
-    parameters = {"fit_intercept": [True, False]}
+    parameters = {
+        'kernel': ['linear', 'rbf'],
+        'C': [0.1, 1, 10],
+        'epsilon': [0.01, 0.1, 0.2],
+        'shrinking': [True, False]
+    }
+elif model_name == "RFClassifier":
+    parameters = {
+        'n_estimators': [50, 100, 200],
+        'max_depth': [None, 10, 20],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4],
+        'max_features': ['auto', 'sqrt'],
+        'bootstrap': [True, False]
+    }
 elif model_name == "RFRegressor":
-    parameters = {"n_estimators": [1, 10, 100]}
+    parameters = {
+        'n_estimators': [50, 100, 200],
+        'max_depth': [None, 10, 20],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4],
+        'max_features': ['auto', 'sqrt'],
+        'bootstrap': [True, False]
+    }
 
-# Train the EEG model using cross-validation
+
 # Get writer for tensorboard
 #writer = SummaryWriter(log_dir=f'/home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/logs/{model_name}/{part}')
 writer= SummaryWriter(log_dir=f'/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/logs/{model_name}/{part}')
 
-#mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_within(model, X, y, parameters, task=task, groups=groups, writer=writer)
-#mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_between(model, X, y, parameters = parameters, task =task, nfolds=3, groups=groups, writer=writer)
-
-mean_score, all_true_labels, all_predictions, score_test = trainingDL_within(model, X, y, task=task, groups=groups, writer=writer)
-#mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task=task, nfolds=3, groups=groups, writer=writer)
+# Train the EEG model using cross-validation
+if dl == False and part == 'within':
+    mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_within(model, X, y, parameters, task=task, groups=groups, writer=writer)
+if dl == False and part == 'between':
+    mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_between(model, X, y, parameters = parameters, task =task, nfolds=3, groups=groups, writer=writer)
+if dl == True and part == 'within':
+    mean_score, all_true_labels, all_predictions, score_test = trainingDL_within(model, X, y, task=task, groups=groups, writer=writer)
+if dl == True and part == 'between':
+    mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task=task, nfolds=3, groups=groups, writer=writer)
 
 # Close the SummaryWriter when done
 writer.close()
 
 # Specify the file path for storing the results
-output_file = f"results{model_name}/{part}.csv"
+output_dir = f"results{model_name}"
+os.makedirs(output_dir, exist_ok=True)  # Create the directory if it doesn't exist
+output_file = os.path.join(output_dir, f"{part}.csv")
 
 # Combine the lists into rows
 if cv == 'simple':
-    rows = zip(mean_score, score_test, all_true_labels, all_predictions)
+    rows = zip([mean_score], [score_test], all_true_labels, all_predictions)
 
     # Write the rows to a CSV file
     with open(output_file, 'w', newline='') as csvfile:
         csvwriter = csv.writer(csvfile)
         csvwriter.writerow(["Mean Score", "Test Score", "True Label", "Predicted Label"])  # Write header
-        csvwriter.writerows(rows)
+        for row in rows:
+            mean_scr, test_scr, true_labels, preds = row
+            csvwriter.writerow([mean_scr, test_scr, true_labels.tolist(), preds.tolist()])
 
 elif cv == 'nested':
-    rows = zip(mean_score, score_test, most_common_best_param, all_true_labels, all_predictions)
+    rows = zip([mean_score], [score_test], [most_common_best_param], all_true_labels, all_predictions)
 
     # Write the rows to a CSV file
     with open(output_file, 'w', newline='') as csvfile:
@@ -243,7 +292,9 @@ if task == 'classification':
     ax.set(ylabel="True label", xlabel="Predicted label")
 
     # Save the confusion matrix plot as an image file
-    output_file = f"images/confusion_matrix{model_name}/{part}.png"
+    output_dir = f"images/confusion_matrix{model_name}"
+    os.makedirs(output_dir, exist_ok=True)  # Create the directory if it doesn't exist
+    output_file = os.path.join(output_dir, f"{part}.png")
     plt.savefig(output_file)
 
 # Run this in Terminal to see tensorboard
