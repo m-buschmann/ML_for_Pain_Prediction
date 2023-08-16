@@ -29,12 +29,12 @@ def trainingDL_between(model, X, y, task = 'regression', nfolds=5, groups=None, 
     - all_predictions (list): List of predicted class labels or values across all validation folds.
     - score_test (float): Mean squared error (for regression) or accuracy (for classification) on the test set.
     """
-    X = X.astype(np.float32)
+    X = X.astype(np.int64)
 
     # Convert categorical labels to integer indices
     label_encoder = LabelEncoder()
     y = label_encoder.fit_transform(y)
-    y = torch.tensor(y, dtype=torch.float32)
+    y = torch.tensor(y, dtype=torch.int64)
 
     # Initialize GroupKFold with the desired number of folds
     gkf = GroupKFold(n_splits=nfolds)
@@ -112,6 +112,8 @@ def trainingDL_between(model, X, y, task = 'regression', nfolds=5, groups=None, 
     if task == 'classification':
         score_test = accuracy_score(y_test, y_pred_test)
         print("Accuracy on Test Set:", score_test)
+        # Convert y_test to integer type
+        #y_test = y_test.astype(int)  # Ensure integer type
         # Convert the predicted integer indices to original class names
         y_test = label_encoder.inverse_transform(y_test)
         y_pred_test = label_encoder.inverse_transform(y_pred_test)

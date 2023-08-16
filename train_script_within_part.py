@@ -49,7 +49,6 @@ def trainingDL_within(model, X, y, task='classification', groups=None, writer=No
 
     # Loop over each participant
     for participant in unique_participants:
-
         # Get the data indices for the current participant
         participant_indices = np.where(groups == participant)[0]
         # Split participant data into training and testing using train_test_split
@@ -84,14 +83,14 @@ def trainingDL_within(model, X, y, task='classification', groups=None, writer=No
             y_pred = label_encoder.inverse_transform(y_pred)
             #accuracy_mean = np.mean(participant_scores)
             writer.add_scalar('Train Accuracy', accuracy, train_iteration)
-    
+
+        # Append the true class names to the list
+        all_true_labels.extend(y_test)
+        # Append the predicted label strings to the list
+        all_predictions.extend(y_pred)
+
         # Increment the counter for the next training iteration
         train_iteration += 1
-
-    # Append the true class names to the list
-    all_true_labels.extend(y_test)
-    # Append the predicted label strings to the list
-    all_predictions.extend(y_pred)
 
     # Output the first 10 elements of true labels and predictions
     print("True Labels (First 10 elements):", all_true_labels[:10])
@@ -102,7 +101,7 @@ def trainingDL_within(model, X, y, task='classification', groups=None, writer=No
     print("Mean Accuracy/MSE across all participants: {:.3f}".format(mean_score))
     writer.close()
     score_test = 0
-    return mean_score, all_true_labels, all_predictions, score_test
+    return mean_score, all_true_labels[:], all_predictions[:], score_test
 
 def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfolds=5, groups=None, writer=None):
     """
@@ -152,6 +151,7 @@ def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfol
 
     # Loop over each participant
     for participant in unique_participants:
+        print(participant)
         # Get the data indices for the current participant
         participant_indices = np.where(groups == participant)[0]
 

@@ -25,20 +25,42 @@ import csv
 import os
 
 # Set kind of Cross validation and task to perform 
-part = 'between' # 'between' or 'within' participant
-cv = 'simple' # 'simple' or 'nested' Cross Validation
+part = 'within' # 'between' or 'within' participant
 task = 'classification' # 'classification' or 'regression'
-dl = True # Whether to use a deep learning or standard ML model
+dl = False # Whether to use a deep learning or standard ML model
 
 #____________________________________________________________________________
 # Application of cross validation for different models
 # Load data
 
-# Directory
-#bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/cleaned_epo.fif'
-#bidsroot = '/home/mathilda/MITACS/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
-bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
+
+# Get the current working directory
+current_directory = os.getcwd()
+
+# Check if the keyword "lustre" is present in the current directory
+cuda = "lustre" in current_directory
+
+# If cuda is True and a GPU is available, set up GPU acceleration in PyTorch
+# And set bidsroot according to device 
+if cuda:
+    if torch.cuda.is_available():
+        device = torch.device('cuda')  # PyTorch will use the default GPU
+        torch.backends.cudnn.benchmark = True
+    else:
+        device = torch.device('cpu')
+
+    bidsroot = 'scratch/cleaned_epo.fif'
+
+else:
+    device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
+    # Directory
+    #bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/cleaned_epo.fif'
+    #bidsroot = '/home/mathilda/MITACS/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
+    bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
+
+
 data_path = opj(bidsroot)
+
 # Load epochs oject
 epochs = mne.read_epochs(data_path, preload=True)
 # Exclude eog and misc channels
@@ -96,7 +118,7 @@ deep4net = Deep4Net(
 
 # Create EEGClassifiers
 
-model = EEGClassifier(
+"""model = EEGClassifier(
     module=shallow_fbcsp_net,
     callbacks = [
         Checkpoint,
@@ -109,9 +131,9 @@ model = EEGClassifier(
     batch_size = bsize,
     max_epochs=20,
 )
-
-#model= LogisticRegression()
-#model_name = "LogisticRegression"
+"""
+model= LogisticRegression()
+model_name = "LogisticRegression"
 
 #model = svm.SVC()
 #model_name = "SVC"
@@ -183,7 +205,8 @@ if model_name == "LinearRegression":
     }
 elif model_name == "LogisticRegression":
     parameters = {
-        'penalty': ['l1', 'l2', 'elasticnet', 'none'],
+        'solver': ['saga'],
+        'penalty': ['l1', 'l2', 'elasticnet', None],
         'C': [0.1, 1, 10, 100],
         'multi_class': ['ovr', 'multinomial'],
         'class_weight': [None, 'balanced']
@@ -247,22 +270,24 @@ output_dir = f"results{model_name}"
 os.makedirs(output_dir, exist_ok=True)  # Create the directory if it doesn't exist
 output_file = os.path.join(output_dir, f"{part}.csv")
 
+print(all_true_labels[:10])
+
 # Combine the lists into rows
-if cv == 'simple':
-    rows = zip([mean_score], [score_test], all_true_labels.tolist(), all_predictions.tolist())
+if dl == True:
+    rows = zip([mean_score], [score_test], all_true_labels[:], all_predictions[:])
 
     # Write the rows to a CSV file
     with open(output_file, 'w', newline='') as csvfile:
-        csvwriter = csv.writer(csvfile)
+        csvwriter = csv.writer(csvfile, delimiter=',')
         csvwriter.writerow(["Mean Score", "Test Score", "True Label", "Predicted Label"])  # Write header
         csvwriter.writerows(rows)
 
-elif cv == 'nested':
+elif dl == False:
     rows = zip([mean_score], [score_test], [most_common_best_param], all_true_labels, all_predictions)
 
     # Write the rows to a CSV file
     with open(output_file, 'w', newline='') as csvfile:
-        csvwriter = csv.writer(csvfile)
+        csvwriter = csv.writer(csvfile, delimiter=',')
         csvwriter.writerow(["Mean Score", "Test Score", "Best Parameters", "True Label", "Predicted Label"])  # Write header
         csvwriter.writerows(rows)
 

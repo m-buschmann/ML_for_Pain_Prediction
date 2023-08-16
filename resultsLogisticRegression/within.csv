@@ -1,0 +1,2 @@
+Mean Score,Test Score,True Label,Predicted Label
+0.2263471177944862,"[0.21929824561403508, 0.20535714285714285, 0.2543859649122807]",auditoryrate,auditoryrate
