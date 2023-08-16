@@ -194,6 +194,8 @@ model_name = "deep4netRegression"
 #model = LinearRegression()  
 #model_name = "LinearRegression"
 
+#model = sklearn.linear_model.ElasticNet()
+#model_name = "ElasticNet"
 #__________________________________________________________________
 # Training
 
@@ -246,6 +248,14 @@ elif model_name == "RFRegressor":
         'max_features': ['auto', 'sqrt'],
         'bootstrap': [True, False]
     }
+elif model_name == "ElasticNet":
+    elasticnet_param_grid = {
+        'alpha': [0.01, 0.1, 1.0],        # Regularization strength (higher values add more penalty)
+        'l1_ratio': [0.1, 0.5, 0.9],      # Mixing parameter between L1 and L2 penalty (0: Ridge, 1: Lasso)
+        'fit_intercept': [True, False],   # Whether to calculate the intercept
+        'max_iter': [1000, 2000, 5000],   # Maximum number of iterations for optimization
+        'tol': [1e-4, 1e-5, 1e-6],        # Tolerance for stopping criterion
+    }
 
 
 # Get writer for tensorboard
@@ -283,7 +293,7 @@ if dl == True:
         csvwriter.writerows(rows)
 
 elif dl == False:
-    rows = zip([mean_score], [score_test], [most_common_best_param], all_true_labels, all_predictions)
+    rows = zip([mean_score], [score_test], [most_common_best_param], all_true_labels[:], all_predictions[:])
 
     # Write the rows to a CSV file
     with open(output_file, 'w', newline='') as csvfile:
