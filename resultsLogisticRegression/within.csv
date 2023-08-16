@@ -1,2 +1,2 @@
-Mean Score,Test Score,True Label,Predicted Label
-0.2263471177944862,"[0.21929824561403508, 0.20535714285714285, 0.2543859649122807]",auditoryrate,auditoryrate
+Mean Score,Test Score,Best Parameters,True Label,Predicted Label
+0.19105054302422722,"[0.19298245614035087, 0.16964285714285715, 0.21052631578947367]","{'penalty': 'l1', 'solver': 'saga'}",thermal,auditoryrate

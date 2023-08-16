@@ -50,14 +50,17 @@ if cuda:
         device = torch.device('cpu')
 
     bidsroot = '/lustre04/scratch/mabus103/epoched data whole/cleaned_epo.fif'
+    log_dir=f'/lustre04/scratch/mabus103/ML_for_Pain_Prediction/logs'
 
 else:
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
     # Directory
     #bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/cleaned_epo.fif'
-    #bidsroot = '/home/mathilda/MITACS/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
-    bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
+    bidsroot = '/home/mathilda/MITACS/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
+    #bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
 
+    log_dir='/home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/logs'
+    #log_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/logs'
 
 data_path = opj(bidsroot)
 
@@ -207,11 +210,12 @@ if model_name == "LinearRegression":
     }
 elif model_name == "LogisticRegression":
     parameters = {
+        'n_jobs' : [8],
         'solver': ['saga'],
-        'penalty': ['l1', 'l2', 'elasticnet', None],
-        'C': [0.1, 1, 10, 100],
-        'multi_class': ['ovr', 'multinomial'],
-        'class_weight': [None, 'balanced']
+        'penalty': ['l1', 'l2', None],
+        #'C': [0.1, 1, 10, 100],
+        #'multi_class': ['ovr', 'multinomial'],
+        #'class_weight': [None, 'balanced']
     }
 elif model_name == "SVC":
     parameters = { 
@@ -259,8 +263,7 @@ elif model_name == "ElasticNet":
 
 
 # Get writer for tensorboard
-#writer = SummaryWriter(log_dir=f'/home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/logs/{model_name}/{part}')
-writer= SummaryWriter(log_dir=f'/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/logs/{model_name}/{part}')
+writer = SummaryWriter(log_dir=opj(log_dir, model_name, part))
 
 # Train the EEG model using cross-validation
 if dl == False and part == 'within':
@@ -284,20 +287,20 @@ print(all_true_labels[:10])
 
 # Combine the lists into rows
 if dl == True:
-    rows = zip([mean_score], [score_test], all_true_labels[:], all_predictions[:])
+    rows = zip([mean_score], [score_test], [all_true_labels], [all_predictions])
 
     # Write the rows to a CSV file
     with open(output_file, 'w', newline='') as csvfile:
-        csvwriter = csv.writer(csvfile, delimiter=',')
+        csvwriter = csv.writer(csvfile)
         csvwriter.writerow(["Mean Score", "Test Score", "True Label", "Predicted Label"])  # Write header
         csvwriter.writerows(rows)
 
 elif dl == False:
-    rows = zip([mean_score], [score_test], [most_common_best_param], all_true_labels[:], all_predictions[:])
+    rows = zip([mean_score], [score_test], [most_common_best_param], [all_true_labels], [all_predictions])
 
     # Write the rows to a CSV file
     with open(output_file, 'w', newline='') as csvfile:
-        csvwriter = csv.writer(csvfile, delimiter=',')
+        csvwriter = csv.writer(csvfile)
         csvwriter.writerow(["Mean Score", "Test Score", "Best Parameters", "True Label", "Predicted Label"])  # Write header
         csvwriter.writerows(rows)
 
