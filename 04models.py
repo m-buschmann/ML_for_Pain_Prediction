@@ -49,7 +49,7 @@ if cuda:
     else:
         device = torch.device('cpu')
 
-    bidsroot = 'scratch/cleaned_epo.fif'
+    bidsroot = '/lustre04/scratch/mabus103/epoched data whole/cleaned_epo.fif'
 
 else:
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False

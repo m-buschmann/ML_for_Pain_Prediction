@@ -6,7 +6,7 @@ from os.path import join as opj
 from autoreject import AutoReject
 
 
-"""# Set root directory
+# Set root directory
 bidsroot = '/home/mathilda/MITACS/Project/eeg_pain_v2/derivatives'
 
 # Create cleaned epochs dir
@@ -140,7 +140,6 @@ all_epochs.resample(250)
 all_epochs.save(opj(bidsroot, 'cleaned_epo.fif'), overwrite=True)
 
 """
-
 # Concatenate the two big epoch objects -> doesnt work, memory?
 all_epochs = None
 bidsroot ='/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs'
@@ -168,4 +167,4 @@ for epochs_clean in epochs_generator(part, bidsroot):
 all_epochs.resample(250)
 
 # Save the final all_epochs object
-all_epochs.save(opj(bidsroot, 'cleaned_epo.fif'), overwrite=True)
+all_epochs.save(opj(bidsroot, 'cleaned_epo.fif'), overwrite=True)"""
