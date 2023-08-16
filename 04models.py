@@ -287,13 +287,14 @@ print(all_true_labels[:10])
 
 # Combine the lists into rows
 if dl == True:
-    rows = zip([mean_score], [score_test], [all_true_labels], [all_predictions])
+    rows = zip([mean_score], [score_test], all_true_labels[:], all_predictions[:])
 
     # Write the rows to a CSV file
     with open(output_file, 'w', newline='') as csvfile:
-        csvwriter = csv.writer(csvfile)
+        csvwriter = csv.writer(csvfile, delimiter=',')
         csvwriter.writerow(["Mean Score", "Test Score", "True Label", "Predicted Label"])  # Write header
-        csvwriter.writerows(rows)
+        for row in rows:
+            csvwriter.writerow(row)
 
 elif dl == False:
     rows = zip([mean_score], [score_test], [most_common_best_param], [all_true_labels], [all_predictions])
@@ -302,7 +303,8 @@ elif dl == False:
     with open(output_file, 'w', newline='') as csvfile:
         csvwriter = csv.writer(csvfile)
         csvwriter.writerow(["Mean Score", "Test Score", "Best Parameters", "True Label", "Predicted Label"])  # Write header
-        csvwriter.writerows(rows)
+        for row in rows:
+            csvwriter.writerows(rows)
 
 # For classification, build a confusion matrix
 if task == 'classification':
