@@ -25,9 +25,9 @@ import csv
 import os
 
 # Set kind of Cross validation and task to perform 
-part = 'within' # 'between' or 'within' participant
+part = 'between' # 'between' or 'within' participant
 task = 'classification' # 'classification' or 'regression'
-dl = False # Whether to use a deep learning or standard ML model
+dl = True # Whether to use a deep learning or standard ML model
 
 #____________________________________________________________________________
 # Application of cross validation for different models
@@ -119,7 +119,7 @@ deep4net = Deep4Net(
 
 # Create EEGClassifiers
 
-"""model = EEGClassifier(
+model = EEGClassifier(
     module=shallow_fbcsp_net,
     callbacks = [
         Checkpoint,
@@ -132,9 +132,9 @@ deep4net = Deep4Net(
     batch_size = bsize,
     max_epochs=20,
 )
-"""
-model= LogisticRegression()
-model_name = "LogisticRegression"
+
+#model= LogisticRegression()
+#model_name = "LogisticRegression"
 
 #model = svm.SVC()
 #model_name = "SVC"
@@ -208,7 +208,7 @@ if model_name == "LinearRegression":
     }
 elif model_name == "LogisticRegression":
     parameters = {
-        'n_jobs' : [8],
+        'n_jobs' : [3],
         'solver': ['saga'],
         'penalty': ['l1', 'l2', None],
         #'C': [0.1, 1, 10, 100],
@@ -281,28 +281,29 @@ output_dir = f"results{model_name}"
 os.makedirs(output_dir, exist_ok=True)  # Create the directory if it doesn't exist
 output_file = os.path.join(output_dir, f"{part}.csv")
 
-print(all_true_labels[:10])
-
-# Combine the lists into rows
 if dl == True:
     rows = zip([mean_score], [score_test], [all_true_labels], [all_predictions])
 
-    # Write the rows to a CSV file
+    # Transpose the rows to columns
+    columns = list(zip(*rows))
+
+    # Write the columns to a CSV file
     with open(output_file, 'w', newline='') as csvfile:
         csvwriter = csv.writer(csvfile, delimiter=',')
         csvwriter.writerow(["Mean Score", "Test Score", "True Label", "Predicted Label"])  # Write header
-        for row in rows:
-            csvwriter.writerow(row)
+        csvwriter.writerows(columns)  # Write columns as rows
 
 elif dl == False:
     rows = zip([mean_score], [score_test], [most_common_best_param], [all_true_labels], [all_predictions])
 
-    # Write the rows to a CSV file
+    # Transpose the rows to columns
+    columns = list(zip(*rows))
+
+    # Write the columns to a CSV file
     with open(output_file, 'w', newline='') as csvfile:
         csvwriter = csv.writer(csvfile)
         csvwriter.writerow(["Mean Score", "Test Score", "Best Parameters", "True Label", "Predicted Label"])  # Write header
-        for row in rows:
-            csvwriter.writerows(rows)
+        csvwriter.writerows(columns)  # Write columns as rows
 
 # For classification, build a confusion matrix
 if task == 'classification':
