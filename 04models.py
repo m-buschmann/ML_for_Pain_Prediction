@@ -27,7 +27,7 @@ import os
 # Set kind of Cross validation and task to perform 
 part = 'between' # 'between' or 'within' participant
 task = 'classification' # 'classification' or 'regression'
-dl = True # Whether to use a deep learning or standard ML model
+dl = False # Whether to use a deep learning or standard ML model
 
 #____________________________________________________________________________
 # Application of cross validation for different models
@@ -119,7 +119,7 @@ deep4net = Deep4Net(
 
 # Create EEGClassifiers
 
-model = EEGClassifier(
+"""model = EEGClassifier(
     module=shallow_fbcsp_net,
     callbacks = [
         Checkpoint,
@@ -131,10 +131,10 @@ model = EEGClassifier(
     optimizer=torch.optim.Adam,
     batch_size = bsize,
     max_epochs=20,
-)
+)"""
 
-#model= LogisticRegression()
-#model_name = "LogisticRegression"
+model= LogisticRegression()
+model_name = "LogisticRegression"
 
 #model = svm.SVC()
 #model_name = "SVC"
@@ -211,9 +211,9 @@ elif model_name == "LogisticRegression":
         'n_jobs' : [3],
         'solver': ['saga'],
         'penalty': ['l1', 'l2', None],
-        #'C': [0.1, 1, 10, 100],
-        #'multi_class': ['ovr', 'multinomial'],
-        #'class_weight': [None, 'balanced']
+        'C': [0.1, 1, 10, 100],
+        'multi_class': ['ovr', 'multinomial'],
+        'class_weight': [None, 'balanced']
     }
 elif model_name == "SVC":
     parameters = { 
