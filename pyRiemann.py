@@ -3,7 +3,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from pyriemann.estimation import XdawnCovariances
 from pyriemann.classification import MDM
-from sklearn.model_selection import train_test_split, GroupKFold
+from sklearn.model_selection import GroupKFold
 
 from os.path import join as opj
 import torch
@@ -20,11 +20,6 @@ from sklearn.metrics import (
 )
 from sklearn.model_selection import KFold
 from sklearn.pipeline import make_pipeline
-
-# Set kind of Cross validation and task to perform 
-part = 'between' # 'between' or 'within' participant
-task = 'classification' # 'classification' or 'regression'
-dl = False # Whether to use a deep learning or standard ML model
 
 #____________________________________________________________________________
 # Application of cross validation for different models
@@ -70,13 +65,10 @@ epochs_data = epochs.get_data()
 # Rescale X to a bigger number
 epochs_data = epochs_data * 10e6
 
-if task == 'classification':
-    labels = epochs.metadata["task"].values  
-    # Assuming labels are strings, convert them to numerical labels
-    label_encoder = LabelEncoder()
-    labels = label_encoder.fit_transform(labels)
-elif task == 'regression':
-    labels = epochs.metadata["rating"].values #maybe also intensity
+labels = epochs.metadata["task"].values  
+# Assuming labels are strings, convert them to numerical labels
+label_encoder = LabelEncoder()
+labels = label_encoder.fit_transform(labels)
 
 # Define the groups (participants) to avoid splitting them across train and test
 groups = epochs.metadata["participant_id"].values
@@ -87,10 +79,9 @@ n_components = 3  # pick some components
 cv = KFold(n_splits=10, shuffle=True, random_state=42)
 pr = np.zeros(len(labels))
 
-print("Multiclass classification with XDAWN + MDM")
-
 clf = make_pipeline(XdawnCovariances(n_components), MDM())
 
+# Split between participants
 gkf = GroupKFold(n_splits=3)
 
 for i, (train_idx, test_idx) in enumerate(gkf.split(epochs_data, labels, groups)):
