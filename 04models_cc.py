@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import mne
 from os.path import join as opj
 import torch

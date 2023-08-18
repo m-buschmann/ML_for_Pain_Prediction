@@ -258,7 +258,8 @@ elif model_name == "ElasticNet":
         'max_iter': [1000, 2000, 5000],   # Maximum number of iterations for optimization
         'tol': [1e-4, 1e-5, 1e-6],        # Tolerance for stopping criterion
     }
-
+elif model_name == "deep4netRegression":
+    X = X.reshape(X.shape[0], -1)
 
 # Get writer for tensorboard
 writer = SummaryWriter(log_dir=opj(log_dir, model_name, part))

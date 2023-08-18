@@ -60,7 +60,7 @@ def trainingDL_between(model, X, y, task = 'regression', nfolds=5, groups=None, 
         # New groups from training data for split into train and val
         group2 = groups[train_index]
         # Further split the training set into training and validation sets
-        gkf2 = GroupKFold(n_splits=5)
+        gkf2 = GroupKFold(n_splits=2)
         # Further split the training set into training and validation sets
         for train_idx, val_idx in gkf2.split(X_train, y_train, groups=group2):
             X_train, X_val = X[train_idx], X[val_idx]
