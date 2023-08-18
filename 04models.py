@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import mne
 from os.path import join as opj
 import torch
@@ -169,10 +171,10 @@ deep4net = Deep4Net(
 
 model = EEGRegressor(
     module=deep4net,
-    #criterion=MSELoss(),
+    criterion=MSELoss(),
     cropped=True,
-    criterion=CroppedLoss,
-    criterion__loss_function=torch.nn.functional.mse_loss,
+    #criterion=CroppedLoss,
+    #criterion__loss_function=torch.nn.functional.mse_loss,
     callbacks = [
         'neg_root_mean_squared_error',
         Checkpoint(load_best=True),
@@ -259,7 +261,8 @@ elif model_name == "ElasticNet":
         'tol': [1e-4, 1e-5, 1e-6],        # Tolerance for stopping criterion
     }
 elif model_name == "deep4netRegression":
-    X = X.reshape(X.shape[0], -1)
+    X = (epochs.get_data() * 1e6).astype(np.float32)
+    y = (epochs.events[:,2] - 2).astype(np.int64) #2,3 -> 0,1
 
 # Get writer for tensorboard
 writer = SummaryWriter(log_dir=opj(log_dir, model_name, part))

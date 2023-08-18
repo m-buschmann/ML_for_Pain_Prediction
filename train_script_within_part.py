@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import mne
 import numpy as np
 import torch
