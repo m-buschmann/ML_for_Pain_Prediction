@@ -27,7 +27,7 @@ import os
 # Set kind of Cross validation and task to perform 
 part = 'between' # 'between' or 'within' participant
 task = 'regression' # 'classification' or 'regression'
-dl = True # Whether to use a deep learning or standard ML model
+dl = False # Whether to use a deep learning or standard ML model
 
 #____________________________________________________________________________
 # Application of cross validation for different models
@@ -167,7 +167,7 @@ deep4net = Deep4Net(
     final_conv_length='auto',
 )
 
-model = EEGRegressor(
+"""model = EEGRegressor(
     module=deep4net,
     criterion=MSELoss(),
     #cropped=True,
@@ -185,15 +185,15 @@ model = EEGRegressor(
     max_epochs=20,
 )
 model_name = "deep4netRegression"
-
+"""
 #model = svm.SVR()
 #model_name = "SVR"
 
 #model = RandomForestRegressor()
 #model_name = "RFRegressor"
 
-#model = LinearRegression()  
-#model_name = "LinearRegression"
+model = LinearRegression()  
+model_name = "LinearRegression"
 
 #model = sklearn.linear_model.ElasticNet()
 #model_name = "ElasticNet"
