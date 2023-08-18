@@ -27,7 +27,7 @@ import os
 # Set kind of Cross validation and task to perform 
 part = 'between' # 'between' or 'within' participant
 task = 'regression' # 'classification' or 'regression'
-dl = True # Whether to use a deep learning or standard ML model
+dl = False # Whether to use a deep learning or standard ML model
 
 #____________________________________________________________________________
 # Application of cross validation for different models
@@ -167,12 +167,12 @@ deep4net = Deep4Net(
     final_conv_length='auto',
 )
 
-model = EEGRegressor(
+"""model = EEGRegressor(
     module=deep4net,
-    #criterion=MSELoss(),
-    cropped=True,
-    criterion=CroppedLoss,
-    criterion__loss_function=torch.nn.functional.mse_loss,
+    criterion=MSELoss(),
+    #cropped=True,
+    #criterion=CroppedLoss,
+    #criterion__loss_function=torch.nn.functional.mse_loss,
     callbacks = [
         'neg_root_mean_squared_error',
         Checkpoint(load_best=True),
@@ -184,7 +184,7 @@ model = EEGRegressor(
     batch_size = bsize,
     max_epochs=20,
 )
-model_name = "deep4netRegression"
+model_name = "deep4netRegression"""
 
 #model = svm.SVR()
 #model_name = "SVR"
@@ -192,8 +192,8 @@ model_name = "deep4netRegression"
 #model = RandomForestRegressor()
 #model_name = "RFRegressor"
 
-#model = LinearRegression()  
-#model_name = "LinearRegression"
+model = LinearRegression()  
+model_name = "LinearRegression"
 
 #model = sklearn.linear_model.ElasticNet()
 #model_name = "ElasticNet"
@@ -271,7 +271,7 @@ if dl == False and part == 'between':
 if dl == True and part == 'within':
     mean_score, all_true_labels, all_predictions, score_test = trainingDL_within(model, X, y, task=task, groups=groups, writer=writer)
 if dl == True and part == 'between':
-    mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task=task, nfolds=3, groups=groups, writer=writer)
+    mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task=task, nfolds=4, groups=groups, writer=writer)
 
 # Close the SummaryWriter when done
 writer.close()

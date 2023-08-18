@@ -181,7 +181,7 @@ def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfo
         inner_train_iteration = 0
         inner_scores = []
         # inner cross-validation
-        inner = GroupKFold(2) #increase with more data
+        inner = GroupKFold(5) #increase with more data
         for train_index_inner, test_index_inner in inner.split(X_train_outer, y_train_outer, inner_group):
             # split the training data of outer CV
             X_train_inner, X_test_inner = X_train_outer[train_index_inner], X_train_outer[test_index_inner]
