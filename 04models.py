@@ -26,8 +26,8 @@ import os
 
 # Set kind of Cross validation and task to perform 
 part = 'between' # 'between' or 'within' participant
-task = 'classification' # 'classification' or 'regression'
-dl = False # Whether to use a deep learning or standard ML model
+task = 'regression' # 'classification' or 'regression'
+dl = True # Whether to use a deep learning or standard ML model
 
 #____________________________________________________________________________
 # Application of cross validation for different models
@@ -133,8 +133,8 @@ deep4net = Deep4Net(
     max_epochs=20,
 )"""
 
-model= LogisticRegression()
-model_name = "LogisticRegression"
+#model= LogisticRegression()
+#model_name = "LogisticRegression"
 
 #model = svm.SVC()
 #model_name = "SVC"
@@ -167,7 +167,7 @@ deep4net = Deep4Net(
     final_conv_length='auto',
 )
 
-"""model = EEGRegressor(
+model = EEGRegressor(
     module=deep4net,
     criterion=MSELoss(),
     #cropped=True,
@@ -185,7 +185,7 @@ deep4net = Deep4Net(
     max_epochs=20,
 )
 model_name = "deep4netRegression"
-"""
+
 #model = svm.SVR()
 #model_name = "SVR"
 
@@ -267,7 +267,7 @@ writer = SummaryWriter(log_dir=opj(log_dir, model_name, part))
 if dl == False and part == 'within':
     mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_within(model, X, y, parameters, task=task, groups=groups, writer=writer)
 if dl == False and part == 'between':
-    mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_between(model, X, y, parameters = parameters, task =task, nfolds=3, groups=groups, writer=writer)
+    mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_between(model, X, y, parameters = parameters, task =task, nfolds=4, groups=groups, writer=writer)
 if dl == True and part == 'within':
     mean_score, all_true_labels, all_predictions, score_test = trainingDL_within(model, X, y, task=task, groups=groups, writer=writer)
 if dl == True and part == 'between':
