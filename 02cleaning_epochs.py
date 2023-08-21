@@ -9,7 +9,8 @@ from autoreject import AutoReject
 
 
 # Set root directory
-bidsroot = '/home/mathilda/MITACS/Project/eeg_pain_v2/derivatives'
+#bidsroot = '/home/mathilda/MITACS/Project/eeg_pain_v2/derivatives'
+bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives'
 
 # Create cleaned epochs dir
 pdir = opj(bidsroot, 'cleaned_epo.fif')
@@ -53,6 +54,7 @@ for p in part:
 
         # run autoreject
         ar = AutoReject(
+            n_jobs = -1,
             n_interpolate = [0],
             random_state=42)
 
@@ -66,9 +68,16 @@ for p in part:
         #add row to statistics
         excluded.loc[len(excluded)] = [p, task, rejected_epochs]
 
+        if task == "thermalrate" or  "thermal":
+            dim = -2,
+        elif task == "auditoryrate" or "auditory":
+            dim = -3,
+        elif task == "rest":
+            dim = "nan"
+
         # Get the average rating for each epoch
         intensity = [np.mean(e[-1, :]) for e in epochs_clean]
-        rating = [np.mean(e[-2, :]) for e in epochs_clean]
+        rating = [np.mean(e[dim, :]) for e in epochs_clean]
 
         # Get the average rating difference in each epoch
         diff_rate = [np.max(e[-2, :]) - np.min(e[-2, :]) for e in epochs_clean]
@@ -90,6 +99,24 @@ for p in part:
         
         # set metadata
         epochs_clean.metadata = meta_data
+        ######################################
+        # Define the threshold for diff_intensity
+        """threshold = 5
+
+        # Get the metadata DataFrame from the Epochs object
+        metadata_df = epochs_clean.metadata
+
+        # Get indices of epochs that meet the threshold
+        selected_indices = np.where(metadata_df["diff_intensity"] <= threshold)[0]
+
+        # Filter out epochs based on the diff_intensity threshold
+        epochs_clean = epochs_clean[selected_indices]
+
+        # Print the initial and final number of epochs
+        print("Number of epochs before removal:", len(metadata_df))
+        print("Number of epochs after removal:", len(epochs_clean))"""
+        
+        #################################
         epochs_clean.resample(250)
 
         if all_epochs is None:
@@ -98,10 +125,10 @@ for p in part:
             all_epochs = mne.concatenate_epochs([all_epochs, epochs_clean])
 
         # Save statistics
-        excluded.to_csv(opj(derivpath,'cleaned epochs', "excluded_epochs_autoreject.csv"), index=False)
+        excluded.to_csv(opj(derivpath,'cleaned epochs2', "excluded_epochs_autoreject.csv"), index=False)
         
     # Save the epochs object after each participant
-    cleaned_epo_path = opj(derivpath,'cleaned epochs',  p +'_cleaned_epo.fif')
+    cleaned_epo_path = opj(derivpath,'cleaned epochs2',  p +'_cleaned_epo.fif')
     all_epochs.save(cleaned_epo_path, overwrite=True)
         
     # Explicitly delete objects to release memory
@@ -112,7 +139,7 @@ for p in part:
 
 # Concatenate the cleaned epochs of all participants
 all_epochs = None
-bidsroot ='/home/mathilda/MITACS/Project/eeg_pain_v2/derivatives/cleaned epochs'
+bidsroot ='/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs2'
 part = sorted([s for s in os.listdir(bidsroot) if "sub-" in s])
 derivpath = opj(bidsroot)
 
