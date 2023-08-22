@@ -91,7 +91,7 @@ groups = epochs.metadata["participant_id"].values
 n_chans = len(epochs.info['ch_names'])
 input_window_samples=X.shape[2]
 n_classes_clas=5
-bsize = 4
+bsize = 16
 
 
 # Define a balanced accuracy
