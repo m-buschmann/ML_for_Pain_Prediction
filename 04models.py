@@ -51,13 +51,13 @@ if cuda:
     else:
         device = torch.device('cpu')
 
-    bidsroot = '/lustre04/scratch/mabus103/epoched data whole/cleaned_epo.fif'
+    bidsroot = '/lustre04/scratch/mabus103/epoched_data/cleaned_epo.fif'
     log_dir=f'/lustre04/scratch/mabus103/ML_for_Pain_Prediction/logs'
 
 elif "mplab" in current_directory:
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
-    #bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/cleaned_epo.fif'
-    bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
+    bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/epochs_clean_3/cleaned_epo.fif'
+    #bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
     log_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/logs'
 else:
     bidsroot = '/home/mathilda/MITACS/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
@@ -290,7 +290,7 @@ if dl == False and part == 'between':
 if dl == True and part == 'within':
     mean_score, all_true_labels, all_predictions, score_test = trainingDL_within(model, X, y, task=task, groups=groups, writer=writer)
 if dl == True and part == 'between':
-    mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task=task, nfolds=3, groups=groups, writer=writer)
+    mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task=task, nfolds=4, n_inner_splits = 5, groups=groups, writer=writer)
 
 # Close the SummaryWriter when done
 writer.close()

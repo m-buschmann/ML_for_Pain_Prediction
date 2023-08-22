@@ -13,7 +13,7 @@ from sklearn.metrics import r2_score
 
 
 
-def trainingDL_between(model, X, y, task = 'regression', nfolds=5, groups=None, writer=None):
+def trainingDL_between(model, X, y, task = 'regression', nfolds=4, n_inner_splits=5, groups=None, writer=None):
     """
     Train and evaluate a machine learning model using cross-validation.
 
@@ -62,7 +62,7 @@ def trainingDL_between(model, X, y, task = 'regression', nfolds=5, groups=None, 
         # New groups from training data for split into train and val
         group2 = groups[train_index]
         # Further split the training set into training and validation sets
-        gkf2 = GroupKFold(n_splits=2)
+        gkf2 = GroupKFold(n_splits=n_inner_splits)
         # Further split the training set into training and validation sets
         for train_idx, val_idx in gkf2.split(X_train, y_train, groups=group2):
             X_train, X_val = X[train_idx], X[val_idx]
@@ -134,7 +134,7 @@ def trainingDL_between(model, X, y, task = 'regression', nfolds=5, groups=None, 
     return mean_score, all_true_labels, all_predictions, score_test
 
 
-def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfolds=5, groups=None, writer=None):
+def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfolds=4, n_inner_splits = 5, groups=None, writer=None):
     """
     Perform nested cross-validation for training and evaluating a machine learning model.
 
@@ -183,7 +183,7 @@ def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfo
         inner_train_iteration = 0
         inner_scores = []
         # inner cross-validation
-        inner = GroupKFold(5) #increase with more data
+        inner = GroupKFold(n_inner_splits) #increase with more data
         for train_index_inner, test_index_inner in inner.split(X_train_outer, y_train_outer, inner_group):
             # split the training data of outer CV
             X_train_inner, X_test_inner = X_train_outer[train_index_inner], X_train_outer[test_index_inner]

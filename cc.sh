@@ -2,7 +2,7 @@
 #SBATCH --time=06:00:00
 #SBATCH --account=def-mpcoll
 #SBATCH --gpus=1
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=40
 #SBATCH --mem=186G
 #SBATCH --chdir=/lustre04/scratch/mabus103
 
