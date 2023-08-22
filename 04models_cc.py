@@ -27,7 +27,7 @@ import csv
 import os
 
 # Set kind of Cross validation and task to perform 
-part = 'within' # 'between' or 'within' participant
+part = 'between' # 'between' or 'within' participant
 task = 'regression' # 'classification' or 'regression'
 dl = False # Whether to use a deep learning or standard ML model
 
@@ -204,14 +204,14 @@ deep4net = Deep4Net(
 )
 model_name = "deep4netRegression"""
 
-#model = svm.SVR()
-#model_name = "SVR"
+model = svm.SVR()
+model_name = "SVR"
 
 #model = RandomForestRegressor()
 #model_name = "RFRegressor"
 
-model = LinearRegression()  
-model_name = "LinearRegression"
+#model = LinearRegression()  
+#model_name = "LinearRegression"
 
 #model = sklearn.linear_model.ElasticNet()
 #model_name = "ElasticNet"
