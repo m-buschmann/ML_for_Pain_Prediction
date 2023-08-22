@@ -99,24 +99,7 @@ for p in part:
         
         # set metadata
         epochs_clean.metadata = meta_data
-        ######################################
-        # Define the threshold for diff_intensity
-        """threshold = 20 get absolute value
-
-        # Get the metadata DataFrame from the Epochs object
-        metadata_df = epochs_clean.metadata
-
-        # Get indices of epochs that meet the threshold
-        selected_indices = np.where(metadata_df["diff_intensity"] <= threshold)[0]
-
-        # Filter out epochs based on the diff_intensity threshold
-        epochs_clean = epochs_clean[selected_indices]
-
-        # Print the initial and final number of epochs
-        print("Number of epochs before removal:", len(metadata_df))
-        print("Number of epochs after removal:", len(epochs_clean))"""
-        
-        #################################
+ 
         epochs_clean.resample(250)
 
         if all_epochs is None:

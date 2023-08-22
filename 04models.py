@@ -107,7 +107,7 @@ groups = epochs.metadata["participant_id"].values
 n_chans = len(epochs.info['ch_names'])
 input_window_samples=X.shape[2]
 n_classes_clas=5
-bsize = 4
+bsize = 16
 
 
 # Define a balanced accuracy
@@ -186,9 +186,9 @@ deep4net = Deep4Net(
 )
 
 model = EEGRegressor(
-    module=deep4net,
+    module=shallow_fbcsp_net,
     criterion=MSELoss(),
-    cropped=True,
+    #cropped=True,
     #criterion=CroppedLoss,
     #criterion__loss_function=torch.nn.functional.mse_loss,
     callbacks = [
@@ -198,7 +198,7 @@ model = EEGRegressor(
         LRScheduler,
         ProgressBar,
     ],
-    optimizer=torch.optim.Adam,
+    optimizer=torch.optim.AdamW,
     batch_size = bsize,
     max_epochs=20,
 )
