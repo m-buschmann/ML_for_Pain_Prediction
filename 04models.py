@@ -221,12 +221,11 @@ model_name = "deep4netRegression"
 # Choose parameters for nested CV
 if model_name == "LinearRegression":
     parameters = {
-        'fit_intercept': [True, False],
-        'positive': [True, False]
+        'n_jobs': [-1]
     }
 elif model_name == "LogisticRegression":
     parameters = {
-        'n_jobs' : [3],
+        'n_jobs' : [-1],
         'solver': ['saga'],
         'penalty': ['l1', 'l2', None],
         'C': [0.1, 1, 10, 100],
@@ -252,6 +251,7 @@ elif model_name == "SVR":
     }
 elif model_name == "RFClassifier":
     parameters = {
+        'n_jobs' : [-1],
         'n_estimators': [50, 100, 200],
         'max_depth': [None, 10, 20],
         'min_samples_split': [2, 5, 10],
@@ -261,6 +261,7 @@ elif model_name == "RFClassifier":
     }
 elif model_name == "RFRegressor":
     parameters = {
+        'n_jobs' : [-1],
         'n_estimators': [50, 100, 200],
         'max_depth': [None, 10, 20],
         'min_samples_split': [2, 5, 10],
@@ -276,9 +277,7 @@ elif model_name == "ElasticNet":
         'max_iter': [1000, 2000, 5000],   # Maximum number of iterations for optimization
         'tol': [1e-4, 1e-5, 1e-6],        # Tolerance for stopping criterion
     }
-elif model_name == "deep4netRegression":
-    X = (epochs.get_data() * 1e6).astype(np.float32)
-    y = (epochs.events[:,2] - 2).astype(np.int64) #2,3 -> 0,1
+
 
 # Get writer for tensorboard
 writer = SummaryWriter(log_dir=opj(log_dir, model_name, part))
