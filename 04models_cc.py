@@ -69,6 +69,22 @@ epochs = mne.read_epochs(data_path, preload=True)
 # Exclude eog and misc channels
 epochs = epochs.pick_types(eeg=True) 
 
+#remove epochs above threshold
+threshold = 20 
+
+# Get the metadata DataFrame from the Epochs object
+metadata_df = epochs.metadata
+
+# Get indices of epochs that meet the threshold
+selected_indices = np.where(metadata_df["diff_intensity"] <= abs(threshold))[0]
+
+# Filter out epochs based on the diff_intensity threshold
+epochs = epochs[selected_indices]
+
+# Print the initial and final number of epochs
+print("Number of epochs before removal:", len(metadata_df))
+print("Number of epochs after removal:", len(epochs))
+
 # Set target and label data
 X = epochs.get_data()
 
@@ -91,7 +107,7 @@ groups = epochs.metadata["participant_id"].values
 n_chans = len(epochs.info['ch_names'])
 input_window_samples=X.shape[2]
 n_classes_clas=5
-bsize = 4
+bsize = 16
 
 
 # Define a balanced accuracy
