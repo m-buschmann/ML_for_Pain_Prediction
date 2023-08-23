@@ -211,11 +211,11 @@ model_name = "deep4netRegression"""
 #model = RandomForestRegressor() #done
 #model_name = "RFRegressor"
 
-#model = LinearRegression()  #done
-#model_name = "LinearRegression"
+model = LinearRegression()  #done
+model_name = "LinearRegression"
 
-model = ElasticNet() #missing 2
-model_name = "ElasticNet"
+#model = ElasticNet() #missing 2
+#model_name = "ElasticNet"
 #__________________________________________________________________
 # Training
 
