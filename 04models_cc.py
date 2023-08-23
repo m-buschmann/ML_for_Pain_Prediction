@@ -27,7 +27,7 @@ import csv
 import os
 
 # Set kind of Cross validation and task to perform 
-part = 'between' # 'between' or 'within' participant
+part = 'within' # 'between' or 'within' participant
 task = 'regression' # 'classification' or 'regression'
 dl = False # Whether to use a deep learning or standard ML model
 
@@ -279,7 +279,7 @@ elif model_name == "ElasticNet":
     }
 
 
-
+print(model_name, part)
 # Get writer for tensorboard
 writer = SummaryWriter(log_dir=opj(log_dir, model_name, part))
 
