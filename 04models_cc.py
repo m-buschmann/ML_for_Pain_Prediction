@@ -27,7 +27,7 @@ import csv
 import os
 
 # Set kind of Cross validation and task to perform 
-part = 'within' # 'between' or 'within' participant
+part = 'between' # 'between' or 'within' participant
 task = 'regression' # 'classification' or 'regression'
 dl = False # Whether to use a deep learning or standard ML model
 
@@ -204,16 +204,16 @@ deep4net = Deep4Net(
 )
 model_name = "deep4netRegression"""
 
-model = svm.SVR()
-model_name = "SVR"
+#model = svm.SVR() #done
+#model_name = "SVR"
 
-#model = RandomForestRegressor()
-#model_name = "RFRegressor"
+model = RandomForestRegressor() #missing within
+model_name = "RFRegressor"
 
-#model = LinearRegression()  
+#model = LinearRegression()  #done
 #model_name = "LinearRegression"
 
-#model = sklearn.linear_model.ElasticNet()
+#model = sklearn.linear_model.ElasticNet() #missing 2
 #model_name = "ElasticNet"
 #__________________________________________________________________
 # Training
@@ -229,8 +229,6 @@ elif model_name == "LogisticRegression":
         'solver': ['saga'],
         'penalty': ['l1', 'l2', None],
         'C': [0.1, 1, 10, 100],
-        'multi_class': ['ovr', 'multinomial'],
-        'class_weight': [None, 'balanced']
     }
 elif model_name == "SVC":
     parameters = { 
@@ -238,9 +236,6 @@ elif model_name == "SVC":
         'kernel': ['linear', 'poly', 'rbf', 'sigmoid'],
         'gamma': ['scale', 'auto', 0.1, 1, 10],
         'shrinking': [True, False],
-        'tol': [1e-3, 1e-4, 1e-5],
-        'class_weight': [None, 'balanced'],
-        'decision_function_shape': ['ovr', 'ovo'],
     }
 elif model_name == "SVR":
     parameters = {
@@ -256,7 +251,6 @@ elif model_name == "RFClassifier":
         'max_depth': [None, 10, 20],
         'min_samples_split': [2, 5, 10],
         'min_samples_leaf': [1, 2, 4],
-        'max_features': ['auto', 'sqrt'],
         'bootstrap': [True, False]
     }
 elif model_name == "RFRegressor":
@@ -266,16 +260,13 @@ elif model_name == "RFRegressor":
         'max_depth': [None, 10, 20],
         'min_samples_split': [2, 5, 10],
         'min_samples_leaf': [1, 2, 4],
-        'max_features': ['auto', 'sqrt'],
         'bootstrap': [True, False]
     }
 elif model_name == "ElasticNet":
     elasticnet_param_grid = {
         'alpha': [0.01, 0.1, 1.0],        # Regularization strength (higher values add more penalty)
         'l1_ratio': [0.1, 0.5, 0.9],      # Mixing parameter between L1 and L2 penalty (0: Ridge, 1: Lasso)
-        'fit_intercept': [True, False],   # Whether to calculate the intercept
         'max_iter': [1000, 2000, 5000],   # Maximum number of iterations for optimization
-        'tol': [1e-4, 1e-5, 1e-6],        # Tolerance for stopping criterion
     }
 
 
