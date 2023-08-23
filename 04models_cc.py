@@ -30,7 +30,7 @@ from sklearn.linear_model import ElasticNet
 # Set kind of Cross validation and task to perform 
 part = 'within' # 'between' or 'within' participant
 task = 'regression' # 'classification' or 'regression'
-dl = False # Whether to use a deep learning or standard ML model
+dl = True # Whether to use a deep learning or standard ML model
 
 #____________________________________________________________________________
 # Application of cross validation for different models
@@ -186,7 +186,7 @@ deep4net = Deep4Net(
     final_conv_length='auto',
 )
 
-"""model = EEGRegressor(
+model = EEGRegressor(
     module=deep4net,
     criterion=MSELoss(),
     #cropped=True,
@@ -203,7 +203,7 @@ deep4net = Deep4Net(
     batch_size = bsize,
     max_epochs=20,
 )
-model_name = "deep4netRegression"""
+model_name = "deep4netRegression"
 
 #model = svm.SVR() #done
 #model_name = "SVR"
@@ -214,8 +214,8 @@ model_name = "deep4netRegression"""
 #model = LinearRegression()  #done
 #model_name = "LinearRegression"
 
-model = ElasticNet() #missing within
-model_name = "ElasticNet"
+#model = ElasticNet() done?
+#model_name = "ElasticNet"
 #__________________________________________________________________
 # Training
 
