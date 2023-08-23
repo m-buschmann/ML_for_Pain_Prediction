@@ -30,7 +30,7 @@ from sklearn.linear_model import ElasticNet
 # Set kind of Cross validation and task to perform 
 part = 'between' # 'between' or 'within' participant
 task = 'regression' # 'classification' or 'regression'
-dl = True # Whether to use a deep learning or standard ML model
+dl = False # Whether to use a deep learning or standard ML model
 
 #____________________________________________________________________________
 # Application of cross validation for different models
@@ -186,7 +186,7 @@ deep4net = Deep4Net(
     final_conv_length='auto',
 )
 
-model = EEGRegressor(
+"""model = EEGRegressor(
     module=deep4net,
     criterion=MSELoss(),
     #cropped=True,
@@ -203,7 +203,7 @@ model = EEGRegressor(
     batch_size = bsize,
     max_epochs=20,
 )
-model_name = "deep4netRegression"
+model_name = "deep4netRegression"""
 
 #model = svm.SVR() #done
 #model_name = "SVR"
@@ -214,8 +214,8 @@ model_name = "deep4netRegression"
 #model = LinearRegression()  #done
 #model_name = "LinearRegression"
 
-#model = ElasticNet() #missing within
-#model_name = "ElasticNet"
+model = ElasticNet() #missing within
+model_name = "ElasticNet"
 #__________________________________________________________________
 # Training
 
@@ -264,7 +264,7 @@ elif model_name == "RFRegressor":
         'bootstrap': [True, False]
     }
 elif model_name == "ElasticNet":
-    elasticnet_param_grid = {
+    parameters = {
         'alpha': [0.01, 0.1, 1.0],        # Regularization strength (higher values add more penalty)
         'l1_ratio': [0.1, 0.5, 0.9],      # Mixing parameter between L1 and L2 penalty (0: Ridge, 1: Lasso)
         'max_iter': [1000, 2000, 5000],   # Maximum number of iterations for optimization
