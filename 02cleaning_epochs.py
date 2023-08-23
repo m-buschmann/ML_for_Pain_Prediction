@@ -58,8 +58,6 @@ for p in part:
             n_interpolate = [0],
             random_state=42)
 
-        #ar.fit(epochs)
-
         epochs_clean, reject_log = ar.fit_transform(epochs, return_log=True) #fit transform
 
         # Get indices of rejected epochs #also get ratio of rejected epochs
