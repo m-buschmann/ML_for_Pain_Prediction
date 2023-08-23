@@ -28,7 +28,7 @@ import os
 from sklearn.linear_model import ElasticNet
 
 # Set kind of Cross validation and task to perform 
-part = 'within' # 'between' or 'within' participant
+part = 'between' # 'between' or 'within' participant
 task = 'regression' # 'classification' or 'regression'
 dl = False # Whether to use a deep learning or standard ML model
 
@@ -211,11 +211,11 @@ model_name = "deep4netRegression"""
 #model = RandomForestRegressor() #done
 #model_name = "RFRegressor"
 
-model = LinearRegression()  #done
-model_name = "LinearRegression"
+#model = LinearRegression()  #done
+#model_name = "LinearRegression"
 
-#model = ElasticNet() #missing 2
-#model_name = "ElasticNet"
+model = ElasticNet() #missing 2
+model_name = "ElasticNet"
 #__________________________________________________________________
 # Training
 
