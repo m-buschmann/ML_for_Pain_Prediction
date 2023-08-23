@@ -28,8 +28,8 @@ import os
 
 # Set kind of Cross validation and task to perform 
 part = 'between' # 'between' or 'within' participant
-task = 'regression' # 'classification' or 'regression'
-dl = True # Whether to use a deep learning or standard ML model
+task = 'classification' # 'classification' or 'regression'
+dl = False # Whether to use a deep learning or standard ML model
 
 #____________________________________________________________________________
 # Application of cross validation for different models
@@ -151,8 +151,8 @@ deep4net = Deep4Net(
     max_epochs=20,
 )"""
 
-#model= LogisticRegression()
-#model_name = "LogisticRegression"
+model= LogisticRegression()
+model_name = "LogisticRegression"
 
 #model = svm.SVC()
 #model_name = "SVC"
@@ -185,7 +185,7 @@ deep4net = Deep4Net(
     final_conv_length='auto',
 )
 
-model = EEGRegressor(
+"""model = EEGRegressor(
     module=shallow_fbcsp_net,
     criterion=MSELoss(),
     #cropped=True,
@@ -201,8 +201,8 @@ model = EEGRegressor(
     optimizer=torch.optim.AdamW,
     batch_size = bsize,
     max_epochs=20,
-)
-model_name = "deep4netRegression"
+)"""
+#model_name = "deep4netRegression"
 
 #model = svm.SVR()
 #model_name = "SVR"
@@ -221,7 +221,7 @@ model_name = "deep4netRegression"
 # Choose parameters for nested CV
 if model_name == "LinearRegression":
     parameters = {
-        'n_jobs': [-1]
+        'n_jobs': [1]
     }
 elif model_name == "LogisticRegression":
     parameters = {
@@ -229,8 +229,6 @@ elif model_name == "LogisticRegression":
         'solver': ['saga'],
         'penalty': ['l1', 'l2', None],
         'C': [0.1, 1, 10, 100],
-        'multi_class': ['ovr', 'multinomial'],
-        'class_weight': [None, 'balanced']
     }
 elif model_name == "SVC":
     parameters = { 
@@ -238,9 +236,6 @@ elif model_name == "SVC":
         'kernel': ['linear', 'poly', 'rbf', 'sigmoid'],
         'gamma': ['scale', 'auto', 0.1, 1, 10],
         'shrinking': [True, False],
-        'tol': [1e-3, 1e-4, 1e-5],
-        'class_weight': [None, 'balanced'],
-        'decision_function_shape': ['ovr', 'ovo'],
     }
 elif model_name == "SVR":
     parameters = {
@@ -256,7 +251,6 @@ elif model_name == "RFClassifier":
         'max_depth': [None, 10, 20],
         'min_samples_split': [2, 5, 10],
         'min_samples_leaf': [1, 2, 4],
-        'max_features': ['auto', 'sqrt'],
         'bootstrap': [True, False]
     }
 elif model_name == "RFRegressor":
@@ -266,16 +260,13 @@ elif model_name == "RFRegressor":
         'max_depth': [None, 10, 20],
         'min_samples_split': [2, 5, 10],
         'min_samples_leaf': [1, 2, 4],
-        'max_features': ['auto', 'sqrt'],
         'bootstrap': [True, False]
     }
 elif model_name == "ElasticNet":
     elasticnet_param_grid = {
         'alpha': [0.01, 0.1, 1.0],        # Regularization strength (higher values add more penalty)
         'l1_ratio': [0.1, 0.5, 0.9],      # Mixing parameter between L1 and L2 penalty (0: Ridge, 1: Lasso)
-        'fit_intercept': [True, False],   # Whether to calculate the intercept
         'max_iter': [1000, 2000, 5000],   # Maximum number of iterations for optimization
-        'tol': [1e-4, 1e-5, 1e-6],        # Tolerance for stopping criterion
     }
 
 
@@ -286,11 +277,11 @@ writer = SummaryWriter(log_dir=opj(log_dir, model_name, part))
 if dl == False and part == 'within':
     mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_within(model, X, y, parameters, task=task, groups=groups, writer=writer)
 if dl == False and part == 'between':
-    mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_between(model, X, y, parameters = parameters, task =task, nfolds=4, groups=groups, writer=writer)
+    mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_between(model, X, y, parameters = parameters, task =task, nfolds=3, n_inner_splits = 2, groups=groups, writer=writer)
 if dl == True and part == 'within':
     mean_score, all_true_labels, all_predictions, score_test = trainingDL_within(model, X, y, task=task, groups=groups, writer=writer)
 if dl == True and part == 'between':
-    mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task=task, nfolds=4, n_inner_splits = 5, groups=groups, writer=writer)
+    mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task=task, nfolds=3, n_inner_splits = 2, groups=groups, writer=writer)
 
 # Close the SummaryWriter when done
 writer.close()

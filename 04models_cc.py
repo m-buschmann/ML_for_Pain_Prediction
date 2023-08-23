@@ -25,6 +25,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import csv
 import os
+from sklearn.linear_model import ElasticNet
 
 # Set kind of Cross validation and task to perform 
 part = 'within' # 'between' or 'within' participant
@@ -207,14 +208,14 @@ model_name = "deep4netRegression"""
 #model = svm.SVR() #done
 #model_name = "SVR"
 
-model = RandomForestRegressor() #missing within
-model_name = "RFRegressor"
+#model = RandomForestRegressor() #done
+#model_name = "RFRegressor"
 
 #model = LinearRegression()  #done
 #model_name = "LinearRegression"
 
-#model = sklearn.linear_model.ElasticNet() #missing 2
-#model_name = "ElasticNet"
+model = ElasticNet() #missing 2
+model_name = "ElasticNet"
 #__________________________________________________________________
 # Training
 

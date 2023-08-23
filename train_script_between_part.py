@@ -170,7 +170,6 @@ def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfo
         mne.decoding.Scaler(scalings='mean'), # Scale the data
         mne.decoding.Vectorizer() # Vectorize the data
     )
-    X = preprocessing_pipe.fit_transform(X)
 
     # Outer cross-validation
     # Initialize GroupKFold with the desired number of folds
@@ -188,6 +187,9 @@ def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfo
             # split the training data of outer CV
             X_train_inner, X_test_inner = X_train_outer[train_index_inner], X_train_outer[test_index_inner]
             y_train_inner, y_test_inner = y_train_outer[train_index_inner], y_train_outer[test_index_inner]
+
+            X_train_inner = preprocessing_pipe.fit_transform(X_train_inner)
+            X_test_inner = preprocessing_pipe.fit_transform(X_test_inner)
 
             # fit regressor to training data of inner CV
             clf = GridSearchCV(model, parameters)
@@ -212,6 +214,9 @@ def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfo
         # Fit the selected model to the training set of outer CV
         # For prediction error estimation
         best_model = model.set_params(**best_params)
+        X_train_outer = preprocessing_pipe.fit_transform(X_train_outer)
+        X_test_outer = preprocessing_pipe.fit_transform(X_test_outer)
+
         best_model.fit(X_train_outer, y_train_outer)
 
         y_pred_test = best_model.predict(X_test_outer)
