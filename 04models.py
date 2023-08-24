@@ -27,9 +27,9 @@ import csv
 import os
 
 # Set kind of Cross validation and task to perform 
-part = 'within' # 'between' or 'within' participant
+part = 'between' # 'between' or 'within' participant
 task = 'classification' # 'classification' or 'regression'
-dl = False # Whether to use a deep learning or standard ML model
+dl = True # Whether to use a deep learning or standard ML model
 
 #____________________________________________________________________________
 # Application of cross validation for different models
@@ -137,22 +137,22 @@ deep4net = Deep4Net(
 
 # Create EEGClassifiers
 
-"""model = EEGClassifier(
+model = EEGClassifier(
     module=shallow_fbcsp_net,
     callbacks = [
         Checkpoint,
         EarlyStopping,
         LRScheduler,
-        #ProgressBar,
+        ProgressBar,
         EpochScoring(scoring=balanced_accuracy, lower_is_better=False),
     ],
     optimizer=torch.optim.Adam,
     batch_size = bsize,
     max_epochs=20,
-)"""
+)
 
-model= LogisticRegression()
-model_name = "LogisticRegression"
+#model= LogisticRegression()
+#model_name = "LogisticRegression"
 
 #model = svm.SVC()
 #model_name = "SVC"
@@ -269,7 +269,7 @@ elif model_name == "ElasticNet":
         'max_iter': [1000, 2000, 5000],   # Maximum number of iterations for optimization
     }
 
-
+print(model_name, part)
 # Get writer for tensorboard
 writer = SummaryWriter(log_dir=opj(log_dir, model_name, part))
 
@@ -281,7 +281,7 @@ if dl == False and part == 'between':
 if dl == True and part == 'within':
     mean_score, all_true_labels, all_predictions, score_test = trainingDL_within(model, X, y, task=task, groups=groups, writer=writer)
 if dl == True and part == 'between':
-    mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task=task, nfolds=3, n_inner_splits = 2, groups=groups, writer=writer)
+    mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task=task, nfolds=4, n_inner_splits = 5, groups=groups, writer=writer)
 
 # Close the SummaryWriter when done
 writer.close()
