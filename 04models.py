@@ -27,7 +27,7 @@ import csv
 import os
 
 # Set kind of Cross validation and task to perform 
-part = 'between' # 'between' or 'within' participant
+part = 'within' # 'between' or 'within' participant
 task = 'classification' # 'classification' or 'regression'
 dl = True # Whether to use a deep learning or standard ML model
 
