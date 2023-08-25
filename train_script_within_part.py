@@ -126,8 +126,8 @@ def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfol
     - most_common_best_param (str): Most common best parameter combination from grid search.
     """
     # Initialize arrays to store true labels and predictions for each fold
-    all_true_labels = []
-    all_predictions = []   
+    all_true_labels = np.empty_like(y)
+    all_predictions = np.empty_like(y)   
 
     # Store scores from outer loop
     score_test = [] 
@@ -137,9 +137,10 @@ def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfol
     best_params_per_fold = {}
 
     # Create a pipeline for preprocessing
-    preprocessing_pipe = make_pipeline(
+    full_pipe = make_pipeline(
         mne.decoding.Scaler(scalings='mean'), # Scale the data
-        mne.decoding.Vectorizer() # Vectorize the data
+        mne.decoding.Vectorizer(), # Vectorize the data
+        model # Add the ML model
     )
 
     # Outer cross-validation
@@ -169,11 +170,11 @@ def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfol
             X_train_inner, X_test_inner = X_train_outer[train_index_inner], X_train_outer[test_index_inner]
             y_train_inner, y_test_inner = y_train_outer[train_index_inner], y_train_outer[test_index_inner]
 
-            X_train_inner = preprocessing_pipe.fit_transform(X_train_inner)
-            X_test_inner = preprocessing_pipe.fit_transform(X_test_inner)
+            #X_train_inner = preprocessing_pipe.fit_transform(X_train_inner)
+            #X_test_inner = preprocessing_pipe.fit_transform(X_test_inner)
 
             # fit regressor to training data of inner CV
-            clf = GridSearchCV(model, parameters)
+            clf = GridSearchCV(full_pipe, parameters)
             clf.fit(X_train_inner, y_train_inner)
             inner_scores.append(clf.score(X_test_inner, y_test_inner))
             writer.add_scalar('Train Loss/MSE/Accuracy', clf.score(X_test_inner, y_test_inner), inner_train_iteration)
