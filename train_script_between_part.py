@@ -2,7 +2,7 @@
 # @Author: Your name
 # @Date:   2023-08-25 13:46:44
 # @Last Modified by:   Your name
-# @Last Modified time: 2023-08-25 14:02:59
+# @Last Modified time: 2023-08-25 14:06:44
 #!/usr/bin/env python
 
 import mne
@@ -173,7 +173,7 @@ def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfo
     # Create a pipeline for preprocessing
     preprocessing_pipe = make_pipeline(
         mne.decoding.Scaler(scalings='mean'), # Scale the data
-        mne.decoding.Vectorizer() # Vectorize the data
+        mne.decoding.Vectorizer(), # Vectorize the data
         model # Add the ML model
     )
 
