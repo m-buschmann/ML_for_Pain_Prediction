@@ -27,8 +27,8 @@ import csv
 import os
 
 # Set kind of Cross validation and task to perform 
-part = 'between' # 'between' or 'within' participant
-task = 'classification' # 'classification' or 'regression'
+part = 'within' # 'between' or 'within' participant
+task = 'regression' # 'classification' or 'regression'
 dl = False # Whether to use a deep learning or standard ML model
 
 #____________________________________________________________________________
@@ -155,8 +155,8 @@ deep4net = Deep4Net(
 #model= LogisticRegression()
 #model_name = "LogisticRegression"
 
-model = svm.SVC()
-model_name = "SVC"
+#model = svm.SVC()
+#model_name = "SVC"
 
 #model = RandomForestClassifier()
 #model_name = "RFClassifier"
@@ -219,8 +219,8 @@ if cuda:
 #model = RandomForestRegressor()
 #model_name = "RFRegressor"
 
-#model = LinearRegression()  
-#model_name = "LinearRegression"
+model = LinearRegression()  
+model_name = "LinearRegression"
 
 #model = linear_model.ElasticNet()
 #model_name = "ElasticNet"
@@ -285,7 +285,7 @@ writer = SummaryWriter(log_dir=opj(log_dir, model_name, part))
 
 # Train the EEG model using cross-validation
 if dl == False and part == 'within':
-    mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_within(model, X, y, parameters, task=task, groups=groups, writer=writer)
+    mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_within(model, X, y, parameters, task=task, nfolds=4, n_inner_splits=5, groups=groups, writer=writer)
 if dl == False and part == 'between':
     mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_between(model, X, y, parameters = parameters, task =task, nfolds=3, n_inner_splits = 2, groups=groups, writer=writer)
 if dl == True and part == 'within':

@@ -297,7 +297,7 @@ writer = SummaryWriter(log_dir=opj(log_dir, model_name, part))
 
 # Train the EEG model using cross-validation
 if dl == False and part == 'within':
-    mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_within(model, X, y, parameters, task=task, groups=groups, writer=writer)
+    mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_within(model, X, y, parameters, task=task, nfolds=4, n_inner_splits=5, groups=groups, writer=writer)
 if dl == False and part == 'between':
     mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_between(model, X, y, parameters = parameters, task =task, nfolds=4, groups=groups, writer=writer)
 if dl == True and part == 'within':
