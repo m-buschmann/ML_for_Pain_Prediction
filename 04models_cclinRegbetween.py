@@ -30,7 +30,7 @@ from sklearn.linear_model import ElasticNet
 # Set kind of Cross validation and task to perform 
 part = 'between' # 'between' or 'within' participant
 task = 'regression' # 'classification' or 'regression'
-dl = True # Whether to use a deep learning or standard ML model
+dl = False # Whether to use a deep learning or standard ML model
 
 #____________________________________________________________________________
 # Application of cross validation for different models
@@ -176,7 +176,7 @@ shallow_fbcsp_net = ShallowFBCSPNet(
     input_window_samples=X.shape[2],
     final_conv_length='auto',
 )
-model_name = "shallowFBCSPNetRegression"
+#model_name = "shallowFBCSPNetRegression"
 
 # Create an instance of Deep4Net
 deep4net = Deep4Net(
@@ -212,8 +212,8 @@ model = EEGRegressor(
 #model = RandomForestRegressor() #done
 #model_name = "RFRegressor"
 
-#model = LinearRegression()  #done
-#model_name = "LinearRegression"
+model = LinearRegression()  #done
+model_name = "LinearRegression"
 
 #model = ElasticNet() done?
 #model_name = "ElasticNet"
