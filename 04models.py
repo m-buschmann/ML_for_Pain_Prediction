@@ -3,7 +3,7 @@
 import mne
 from os.path import join as opj
 import torch
-from sklearn import datasets, linear_model, svm
+from sklearn import datasets, linear_model, svm, linear_model
 from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.model_selection import train_test_split, GroupKFold, KFold, GridSearchCV
 from sklearn.metrics import balanced_accuracy_score
@@ -27,7 +27,7 @@ import csv
 import os
 
 # Set kind of Cross validation and task to perform 
-part = 'within' # 'between' or 'within' participant
+part = 'between' # 'between' or 'within' participant
 task = 'classification' # 'classification' or 'regression'
 dl = False # Whether to use a deep learning or standard ML model
 
@@ -152,11 +152,11 @@ deep4net = Deep4Net(
     max_epochs=20,
 )
 """
-model= LogisticRegression()
-model_name = "LogisticRegression"
+#model= LogisticRegression()
+#model_name = "LogisticRegression"
 
-#model = svm.SVC()
-#model_name = "SVC"
+model = svm.SVC()
+model_name = "SVC"
 
 #model = RandomForestClassifier()
 #model_name = "RFClassifier"
@@ -222,7 +222,7 @@ if cuda:
 #model = LinearRegression()  
 #model_name = "LinearRegression"
 
-#model = sklearn.linear_model.ElasticNet()
+#model = linear_model.ElasticNet()
 #model_name = "ElasticNet"
 
 #__________________________________________________________________
@@ -256,27 +256,27 @@ elif model_name == "SVR":
     }
 elif model_name == "RFClassifier":
     parameters = {
-        'rfcclassifier__n_jobs' : [-1],
-        'rfcclassifier__n_estimators': [50, 100, 200],
-        'rfcclassifier__max_depth': [None, 10, 20],
-        'rfcclassifier__min_samples_split': [2, 5, 10],
-        'rfcclassifier__min_samples_leaf': [1, 2, 4],
-        'rfcclassifier__bootstrap': [True, False]
+        'randomforestclassifier__n_jobs' : [-1],
+        'randomforestclassifier__n_estimators': [50, 100, 200],
+        'randomforestclassifier__max_depth': [None, 10, 20],
+        'randomforestclassifier__min_samples_split': [2, 5, 10],
+        'randomforestclassifier__min_samples_leaf': [1, 2, 4],
+        'randomforestclassifier__bootstrap': [True, False]
     }
 elif model_name == "RFRegressor":
     parameters = {
-        'rfregressor__n_jobs' : [-1],
-        'rfregressor__n_estimators': [50, 100, 200],
-        'rfregressor__max_depth': [None, 10, 20],
-        'rfregressor__min_samples_split': [2, 5, 10],
-        'rfregressor__min_samples_leaf': [1, 2, 4],
-        'rfregressor__bootstrap': [True, False]
+        'randomforestregressor__n_jobs' : [-1],
+        'randomforestregressor__n_estimators': [50, 100, 200],
+        'randomforestregressor__max_depth': [None, 10, 20],
+        'randomforestregressor__min_samples_split': [2, 5, 10],
+        'randomforestregressor__min_samples_leaf': [1, 2, 4],
+        'randomforestregressor__bootstrap': [True, False]
     }
 elif model_name == "ElasticNet":
     parameters = {
-        'rfregressor__alpha': [0.01, 0.1, 1.0],        # Regularization strength (higher values add more penalty)
-        'rfregressor__l1_ratio': [0.1, 0.5, 0.9],      # Mixing parameter between L1 and L2 penalty (0: Ridge, 1: Lasso)
-        'rfregressor__max_iter': [1000, 2000, 5000],   # Maximum number of iterations for optimization
+        'elasticnet__alpha': [0.01, 0.1, 1.0],        # Regularization strength (higher values add more penalty)
+        'elasticnet__l1_ratio': [0.1, 0.5, 0.9],      # Mixing parameter between L1 and L2 penalty (0: Ridge, 1: Lasso)
+        'elasticnet__max_iter': [1000, 2000, 5000],   # Maximum number of iterations for optimization
     }
 
 print(model_name, part)

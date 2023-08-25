@@ -258,27 +258,27 @@ elif model_name == "SVR":
     }
 elif model_name == "RFClassifier":
     parameters = {
-        'rfcclassifier__n_jobs' : [-1],
-        'rfcclassifier__n_estimators': [50, 100, 200],
-        'rfcclassifier__max_depth': [None, 10, 20],
-        'rfcclassifier__min_samples_split': [2, 5, 10],
-        'rfcclassifier__min_samples_leaf': [1, 2, 4],
-        'rfcclassifier__bootstrap': [True, False]
+        'randomforestclassifier__n_jobs' : [-1],
+        'randomforestclassifier__n_estimators': [50, 100, 200],
+        'randomforestclassifier__max_depth': [None, 10, 20],
+        'randomforestclassifier__min_samples_split': [2, 5, 10],
+        'randomforestclassifier__min_samples_leaf': [1, 2, 4],
+        'randomforestclassifier__bootstrap': [True, False]
     }
 elif model_name == "RFRegressor":
     parameters = {
-        'rfregressor__n_jobs' : [-1],
-        'rfregressor__n_estimators': [50, 100, 200],
-        'rfregressor__max_depth': [None, 10, 20],
-        'rfregressor__min_samples_split': [2, 5, 10],
-        'rfregressor__min_samples_leaf': [1, 2, 4],
-        'rfregressor__bootstrap': [True, False]
+        'randomforestregressor__n_jobs' : [-1],
+        'randomforestregressor__n_estimators': [50, 100, 200],
+        'randomforestregressor__max_depth': [None, 10, 20],
+        'randomforestregressor__min_samples_split': [2, 5, 10],
+        'randomforestregressor__min_samples_leaf': [1, 2, 4],
+        'randomforestregressor__bootstrap': [True, False]
     }
 elif model_name == "ElasticNet":
     parameters = {
-        'rfregressor__alpha': [0.01, 0.1, 1.0],        # Regularization strength (higher values add more penalty)
-        'rfregressor__l1_ratio': [0.1, 0.5, 0.9],      # Mixing parameter between L1 and L2 penalty (0: Ridge, 1: Lasso)
-        'rfregressor__max_iter': [1000, 2000, 5000],   # Maximum number of iterations for optimization
+        'elasticnet__alpha': [0.01, 0.1, 1.0],        # Regularization strength (higher values add more penalty)
+        'elasticnet__l1_ratio': [0.1, 0.5, 0.9],      # Mixing parameter between L1 and L2 penalty (0: Ridge, 1: Lasso)
+        'elasticnet__max_iter': [1000, 2000, 5000],   # Maximum number of iterations for optimization
     }
 
 
