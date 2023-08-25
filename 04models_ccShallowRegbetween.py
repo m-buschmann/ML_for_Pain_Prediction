@@ -25,10 +25,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import csv
 import os
+from sklearn.linear_model import ElasticNet
 
 # Set kind of Cross validation and task to perform 
-part = 'within' # 'between' or 'within' participant
-task = 'classification' # 'classification' or 'regression'
+part = 'between' # 'between' or 'within' participant
+task = 'regression' # 'classification' or 'regression'
 dl = True # Whether to use a deep learning or standard ML model
 
 #____________________________________________________________________________
@@ -56,8 +57,8 @@ if cuda:
 
 elif "mplab" in current_directory:
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
-    bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/epochs_clean_3/cleaned_epo.fif'
-    #bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
+    #bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/cleaned_epo.fif'
+    bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
     log_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/logs'
 else:
     bidsroot = '/home/mathilda/MITACS/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
@@ -137,19 +138,19 @@ deep4net = Deep4Net(
 
 # Create EEGClassifiers
 
-model = EEGClassifier(
+"""model = EEGClassifier(
     module=shallow_fbcsp_net,
     callbacks = [
         Checkpoint,
         EarlyStopping,
         LRScheduler,
-        ProgressBar,
+        #ProgressBar,
         EpochScoring(scoring=balanced_accuracy, lower_is_better=False),
     ],
     optimizer=torch.optim.Adam,
     batch_size = bsize,
     max_epochs=20,
-)
+)"""
 
 #model= LogisticRegression()
 #model_name = "LogisticRegression"
@@ -163,7 +164,6 @@ model = EEGClassifier(
 #____________________________________________________________________
 # Create EEGRegressors
 
-#batchsize 8 -16
 optimizer_lr = 0.000625
 optimizer_weight_decay = 0
 n_classes_reg=1
@@ -175,7 +175,7 @@ shallow_fbcsp_net = ShallowFBCSPNet(
     input_window_samples=X.shape[2],
     final_conv_length='auto',
 )
-#model_name = "shallowFBCSPNetRegression"
+model_name = "shallowFBCSPNetRegression"
 
 # Create an instance of Deep4Net
 deep4net = Deep4Net(
@@ -184,8 +184,9 @@ deep4net = Deep4Net(
     input_window_samples=X.shape[2],
     final_conv_length='auto',
 )
+#model_name = "deep4netRegression"
 
-"""model = EEGRegressor(
+model = EEGRegressor(
     module=shallow_fbcsp_net,
     criterion=MSELoss(),
     #cropped=True,
@@ -198,22 +199,22 @@ deep4net = Deep4Net(
         LRScheduler,
         ProgressBar,
     ],
-    optimizer=torch.optim.AdamW,
+    optimizer=torch.optim.Adam,
     batch_size = bsize,
     max_epochs=20,
-)"""
-#model_name = "deep4netRegression"
+)
 
-#model = svm.SVR()
+
+#model = svm.SVR() #done
 #model_name = "SVR"
 
-#model = RandomForestRegressor()
+#model = RandomForestRegressor() #done
 #model_name = "RFRegressor"
 
-#model = LinearRegression()  
+#model = LinearRegression()  #done
 #model_name = "LinearRegression"
 
-#model = sklearn.linear_model.ElasticNet()
+#model = ElasticNet()
 #model_name = "ElasticNet"
 #__________________________________________________________________
 # Training
@@ -221,7 +222,7 @@ deep4net = Deep4Net(
 # Choose parameters for nested CV
 if model_name == "LinearRegression":
     parameters = {
-        'n_jobs': [1]
+        'n_jobs': [-1]
     }
 elif model_name == "LogisticRegression":
     parameters = {
@@ -263,11 +264,12 @@ elif model_name == "RFRegressor":
         'bootstrap': [True, False]
     }
 elif model_name == "ElasticNet":
-    elasticnet_param_grid = {
+    parameters = {
         'alpha': [0.01, 0.1, 1.0],        # Regularization strength (higher values add more penalty)
         'l1_ratio': [0.1, 0.5, 0.9],      # Mixing parameter between L1 and L2 penalty (0: Ridge, 1: Lasso)
         'max_iter': [1000, 2000, 5000],   # Maximum number of iterations for optimization
     }
+
 
 print(model_name, part)
 # Get writer for tensorboard
@@ -277,7 +279,7 @@ writer = SummaryWriter(log_dir=opj(log_dir, model_name, part))
 if dl == False and part == 'within':
     mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_within(model, X, y, parameters, task=task, groups=groups, writer=writer)
 if dl == False and part == 'between':
-    mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_between(model, X, y, parameters = parameters, task =task, nfolds=3, n_inner_splits = 2, groups=groups, writer=writer)
+    mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_between(model, X, y, parameters = parameters, task =task, nfolds=4, groups=groups, writer=writer)
 if dl == True and part == 'within':
     mean_score, all_true_labels, all_predictions, score_test = trainingDL_within(model, X, y, task=task, groups=groups, writer=writer)
 if dl == True and part == 'between':
