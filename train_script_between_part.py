@@ -186,16 +186,16 @@ def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfo
                            refit=True)
         clf.fit(X_train_outer, y_train_outer) # Fit the model on the training data
 
-            # Store best parameters for each fold
+        # Store best parameters for each fold
         best_params_fold = clf.best_params_
-        best_params_per_fold[fold] = best_params_fold
-
-        inner_train_iteration+=1
+        best_params_per_fold[fold] = best_params_fold #do we even need this?
+        best_params_counts.update([str(best_params_fold)]) #added again? how do we count most common parameter without this?
         
         y_pred_test = clf.predict(X_test_outer)
 
         # Store lists of true values and predictions 
-        all_true_labels[test_index_outer] = y_test_outer
+        all_true_labels[test_index_outer] = y_test_outer#
+        all_predictions[test_index_outer] = y_pred_test #added again?
 
         # MSEs or accuracies from outer loop
         if task == 'regression':

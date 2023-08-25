@@ -105,7 +105,7 @@ def trainingDL_within(model, X, y, task='classification', groups=None, writer=No
     score_test = 0
     return mean_score, all_true_labels[:], all_predictions[:], score_test
 
-def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfolds=5, groups=None, writer=None):
+def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfolds=4, n_inner_splits = 5, groups=None, writer=None):
     """
     Train and evaluate a machine learning model using nested cross-validation within participants.
 
@@ -161,51 +161,26 @@ def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfol
         X_train_outer, X_test_outer = X[train_idx], X[test_idx]
         y_train_outer, y_test_outer = y[train_idx], y[test_idx]
 
-        inner_train_iteration = 0
-        inner_scores = []
         # inner cross-validation
-        inner = KFold(2) #increase with more data
-        for train_index_inner, test_index_inner in inner.split(X_train_outer, y_train_outer):
-            # split the training data of outer CV
-            X_train_inner, X_test_inner = X_train_outer[train_index_inner], X_train_outer[test_index_inner]
-            y_train_inner, y_test_inner = y_train_outer[train_index_inner], y_train_outer[test_index_inner]
-
-            #X_train_inner = preprocessing_pipe.fit_transform(X_train_inner)
-            #X_test_inner = preprocessing_pipe.fit_transform(X_test_inner)
-
-            # fit regressor to training data of inner CV
-            clf = GridSearchCV(full_pipe, parameters)
-            clf.fit(X_train_inner, y_train_inner)
-            inner_scores.append(clf.score(X_test_inner, y_test_inner))
-            writer.add_scalar('Train Loss/MSE/Accuracy', clf.score(X_test_inner, y_test_inner), inner_train_iteration)
-
-            # Store best parameters for each fold
-            best_params_fold = clf.best_params_
-            best_params_counts.update([str(best_params_fold)])  # Convert to string for dictionary key
-            best_params_per_fold[participant] = best_params_fold
-
-        inner_train_iteration+=1
-        # Calculate mean score for inner folds
-        print("Inner mean score:", np.mean(inner_scores), participant)
-
-        # Get the best parameters from inner loop
-        best_params = clf.best_params_
-        print('Best parameters of', participant , '. participant:',  best_params)
+        # fit regressor to training data of inner CV
+        clf = GridSearchCV(full_pipe, parameters, cv = KFold(n_inner_splits).split(X_train_outer, y_train_outer), refit = True)
+        clf.fit(X_train_outer, y_train_outer)
+        
+        # Store best parameters for each fold
+        best_params_fold = clf.best_params_
+        best_params_counts.update([str(best_params_fold)])  
+        best_params_per_fold[participant] = best_params_fold
 
         # Fit the selected model to the training set of outer CV
         # For prediction error estimation
-        best_model = model.set_params(**best_params)
-        X_train_outer = preprocessing_pipe.fit_transform(X_train_outer)
-        X_test_outer = preprocessing_pipe.fit_transform(X_test_outer)
+        #best_model = model.set_params(**best_params)
+        #y_pred_test = best_model.predict(X_test_outer)
 
-
-        best_model.fit(X_train_outer, y_train_outer)
-
-        y_pred_test = best_model.predict(X_test_outer)
+        y_pred_test = clf.predict(X_test_outer)  #does this automatically use the best parameters?
 
         # Store lists of true values and predictions 
-        all_true_labels.extend(y_test_outer) #also for train set?
-        all_predictions.extend(y_pred_test)
+        all_true_labels[test_idx] = y_test_outer
+        all_predictions[test_idx] = y_pred_test
 
         # MSEs or accuracies from outer loop
         if task == 'regression':
