@@ -34,7 +34,7 @@ from sklearn.linear_model import ElasticNet
 
 # Set kind of Cross validation and task to perform 
 part = 'between' # 'between' or 'within' participant
-task = 'regression' # 'classification' or 'regression'
+task = 'classification' # 'classification' or 'regression'
 dl = False # Whether to use a deep learning or standard ML model
 
 #____________________________________________________________________________
@@ -163,8 +163,8 @@ if cuda:
     device=device,
 )"""
 
-#model= LogisticRegression()
-#model_name = "LogisticRegression"
+model= LogisticRegression()
+model_name = "LogisticRegression"
 
 #model = svm.SVC()
 #model_name = "SVC"
@@ -180,7 +180,7 @@ optimizer_lr = 0.000625
 optimizer_weight_decay = 0
 n_classes_reg=1
 
-# Create an instance of ShallowFBCSPNet
+"""# Create an instance of ShallowFBCSPNet
 shallow_fbcsp_net = ShallowFBCSPNet(
     in_chans=len(epochs.info['ch_names']),
     n_classes=n_classes_reg,
@@ -189,9 +189,9 @@ shallow_fbcsp_net = ShallowFBCSPNet(
 )
 model_name = "shallowFBCSPNetRegression"
 if cuda:
-    shallow_fbcsp_net.cuda()
+    shallow_fbcsp_net.cuda()"""
 
-# Create an instance of Deep4Net
+"""# Create an instance of Deep4Net
 deep4net = Deep4Net(
     in_chans=len(epochs.info['ch_names']),
     n_classes=n_classes_reg,
@@ -200,7 +200,7 @@ deep4net = Deep4Net(
 )
 model_name = "deep4netRegression"
 if cuda:
-    deep4net.cuda()
+    deep4net.cuda()"""
 
 """model = EEGRegressor(
     module=deep4net,
@@ -228,8 +228,8 @@ if cuda:
 #model = RandomForestRegressor() #done
 #model_name = "RFRegressor"
 
-model = LinearRegression()  #done
-model_name = "LinearRegression"
+#model = LinearRegression()  #done
+#model_name = "LinearRegression"
 
 #model = ElasticNet() done?
 #model_name = "ElasticNet"
@@ -299,7 +299,7 @@ writer = SummaryWriter(log_dir=opj(log_dir, model_name, part))
 if dl == False and part == 'within':
     mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_within(model, X, y, parameters, task=task, nfolds=4, n_inner_splits=5, groups=groups, writer=writer)
 if dl == False and part == 'between':
-    mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_between(model, X, y, parameters = parameters, task =task, nfolds=4, groups=groups, writer=writer)
+    mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_between(model, X, y, parameters = parameters, task =task, nfolds=3, n_inner_splits=2, groups=groups, writer=writer)
 if dl == True and part == 'within':
     mean_score, all_true_labels, all_predictions, score_test = trainingDL_within(model, X, y, task=task, groups=groups, writer=writer)
 if dl == True and part == 'between':

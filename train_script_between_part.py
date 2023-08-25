@@ -184,7 +184,7 @@ def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfo
         # inner cross-validation
         clf = GridSearchCV(full_pipe, parameters, cv=GroupKFold(n_inner_splits).split(X_train_outer, y_train_outer, inner_group),
                            refit=True)
-        clf.fit(X_train_outer, y_train_outer) # Fit the model on the training data
+        clf.fit(X_train_outer, y_train_outer) # Fit the model on the training data is this still splitting inner test and train?
 
         # Store best parameters for each fold
         best_params_fold = clf.best_params_
