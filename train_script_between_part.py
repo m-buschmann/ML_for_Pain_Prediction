@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+# @Author: Your name
+# @Date:   2023-08-25 13:46:44
+# @Last Modified by:   Your name
+# @Last Modified time: 2023-08-25 14:02:59
 #!/usr/bin/env python
 
 import mne
@@ -155,8 +160,8 @@ def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfo
     - most_common_best_param (dict): Dictionary containing the most common best parameters from inner CV.
     """
     # Initialize arrays to store true labels and predictions for each fold
-    all_true_labels = []
-    all_predictions = []   
+    all_true_labels = np.empty_like(y)
+    all_predictions = np.empty_like(y)
 
     # Store scores from outer loop
     score_test = [] 
@@ -169,6 +174,7 @@ def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfo
     preprocessing_pipe = make_pipeline(
         mne.decoding.Scaler(scalings='mean'), # Scale the data
         mne.decoding.Vectorizer() # Vectorize the data
+        model # Add the ML model
     )
 
     # Outer cross-validation
@@ -179,51 +185,22 @@ def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfo
         y_train_outer, y_test_outer = y[train_index_outer], y[test_index_outer]
 
         inner_group = groups[train_index_outer]
-        inner_train_iteration = 0
-        inner_scores = []
+
         # inner cross-validation
-        inner = GroupKFold(n_inner_splits) #increase with more data
-        for train_index_inner, test_index_inner in inner.split(X_train_outer, y_train_outer, inner_group):
-            # split the training data of outer CV
-            X_train_inner, X_test_inner = X_train_outer[train_index_inner], X_train_outer[test_index_inner]
-            y_train_inner, y_test_inner = y_train_outer[train_index_inner], y_train_outer[test_index_inner]
-
-            X_train_inner = preprocessing_pipe.fit_transform(X_train_inner)
-            X_test_inner = preprocessing_pipe.fit_transform(X_test_inner)
-
-            # fit regressor to training data of inner CV
-            clf = GridSearchCV(model, parameters)
-            clf.fit(X_train_inner, y_train_inner)
-            inner_scores.append(clf.score(X_test_inner, y_test_inner))
-            writer.add_scalar('Train/Loss/MSE/Accuracy', clf.score(X_test_inner, y_test_inner), inner_train_iteration) 
+        clf = GridSearchCV(model, parameters, cv=GroupKFold(n_inner_splits).splits(X_train_outer, y_train_outer, inner_group),
+                           refit=True)
+        clf.fit(X_train_outer, y_train_outer) # Fit the model on the training data
 
             # Store best parameters for each fold
-            best_params_fold = clf.best_params_
-            best_params_counts.update([str(best_params_fold)])  # Convert to string for dictionary key
-            best_params_per_fold[fold] = best_params_fold
+        best_params_fold = clf.best_params_
+        best_params_per_fold[fold] = best_params_fold
 
-            inner_train_iteration+=1
-            
-        # Calculate mean score for inner folds
-        print("Inner mean score:", np.mean(inner_scores), fold+1 , '.fold',)
-
-        # Get the best parameters from inner loop
-        best_params = clf.best_params_
-        print('Best parameters of', fold+1 , '.fold:',  best_params)
-
-        # Fit the selected model to the training set of outer CV
-        # For prediction error estimation
-        best_model = model.set_params(**best_params)
-        X_train_outer = preprocessing_pipe.fit_transform(X_train_outer)
-        X_test_outer = preprocessing_pipe.fit_transform(X_test_outer)
-
-        best_model.fit(X_train_outer, y_train_outer)
-
-        y_pred_test = best_model.predict(X_test_outer)
+        inner_train_iteration+=1
+        
+        y_pred_test = clf.predict(X_test_outer)
 
         # Store lists of true values and predictions 
-        all_true_labels.extend(y_test_outer) #also for train set?
-        all_predictions.extend(y_pred_test)
+        all_true_labels[test_index_outer] = y_test_outer
 
         # MSEs or accuracies from outer loop
         if task == 'regression':
