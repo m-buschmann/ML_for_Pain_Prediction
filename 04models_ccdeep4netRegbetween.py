@@ -234,54 +234,53 @@ model = EEGRegressor(
 # Choose parameters for nested CV
 if model_name == "LinearRegression":
     parameters = {
-        'n_jobs': [-1]
+        'linearregression__n_jobs': [-1]
     }
 elif model_name == "LogisticRegression":
     parameters = {
-        'n_jobs' : [-1],
-        'solver': ['saga'],
-        'penalty': ['l1', 'l2', None],
-        'C': [0.1, 1, 10, 100],
+        'logisticregression__n_jobs' : [-1],
+        'logisticregression__solver': ['saga'],
+        'logisticregression__penalty': ['l1', 'l2', None],
+        'logisticregression__C': [0.1, 1, 10, 100],
     }
 elif model_name == "SVC":
     parameters = { 
-        'C': [0.1, 1, 10, 100],
-        'kernel': ['linear', 'poly', 'rbf', 'sigmoid'],
-        'gamma': ['scale', 'auto', 0.1, 1, 10],
-        'shrinking': [True, False],
+        'svc__C': [0.1, 1, 10, 100],
+        'svc__kernel': ['linear', 'poly', 'rbf', 'sigmoid'],
+        'svc__gamma': ['scale', 'auto', 0.1, 1, 10],
+        'svc__shrinking': [True, False],
     }
 elif model_name == "SVR":
     parameters = {
-        'kernel': ['linear', 'rbf'],
-        'C': [0.1, 1, 10],
-        'epsilon': [0.01, 0.1, 0.2],
-        'shrinking': [True, False]
+        'svr__kernel': ['linear', 'rbf'],
+        'svr__C': [0.1, 1, 10],
+        'svr__epsilon': [0.01, 0.1, 0.2],
+        'svr__shrinking': [True, False]
     }
 elif model_name == "RFClassifier":
     parameters = {
-        'n_jobs' : [-1],
-        'n_estimators': [50, 100, 200],
-        'max_depth': [None, 10, 20],
-        'min_samples_split': [2, 5, 10],
-        'min_samples_leaf': [1, 2, 4],
-        'bootstrap': [True, False]
+        'rfcclassifier__n_jobs' : [-1],
+        'rfcclassifier__n_estimators': [50, 100, 200],
+        'rfcclassifier__max_depth': [None, 10, 20],
+        'rfcclassifier__min_samples_split': [2, 5, 10],
+        'rfcclassifier__min_samples_leaf': [1, 2, 4],
+        'rfcclassifier__bootstrap': [True, False]
     }
 elif model_name == "RFRegressor":
     parameters = {
-        'n_jobs' : [-1],
-        'n_estimators': [50, 100, 200],
-        'max_depth': [None, 10, 20],
-        'min_samples_split': [2, 5, 10],
-        'min_samples_leaf': [1, 2, 4],
-        'bootstrap': [True, False]
+        'rfregressor__n_jobs' : [-1],
+        'rfregressor__n_estimators': [50, 100, 200],
+        'rfregressor__max_depth': [None, 10, 20],
+        'rfregressor__min_samples_split': [2, 5, 10],
+        'rfregressor__min_samples_leaf': [1, 2, 4],
+        'rfregressor__bootstrap': [True, False]
     }
 elif model_name == "ElasticNet":
     parameters = {
-        'alpha': [0.01, 0.1, 1.0],        # Regularization strength (higher values add more penalty)
-        'l1_ratio': [0.1, 0.5, 0.9],      # Mixing parameter between L1 and L2 penalty (0: Ridge, 1: Lasso)
-        'max_iter': [1000, 2000, 5000],   # Maximum number of iterations for optimization
+        'rfregressor__alpha': [0.01, 0.1, 1.0],        # Regularization strength (higher values add more penalty)
+        'rfregressor__l1_ratio': [0.1, 0.5, 0.9],      # Mixing parameter between L1 and L2 penalty (0: Ridge, 1: Lasso)
+        'rfregressor__max_iter': [1000, 2000, 5000],   # Maximum number of iterations for optimization
     }
-
 
 print(model_name, part)
 # Get writer for tensorboard
