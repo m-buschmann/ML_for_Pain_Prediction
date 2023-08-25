@@ -215,6 +215,9 @@ deep4net = Deep4Net(
 
 #model = sklearn.linear_model.ElasticNet()
 #model_name = "ElasticNet"
+
+if cuda:
+    model.cuda()
 #__________________________________________________________________
 # Training
 

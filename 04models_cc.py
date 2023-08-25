@@ -217,6 +217,10 @@ model_name = "LinearRegression"
 
 #model = ElasticNet() done?
 #model_name = "ElasticNet"
+
+if cuda:
+    model.cuda()
+    
 #__________________________________________________________________
 # Training
 

@@ -216,6 +216,9 @@ model = EEGRegressor(
 
 #model = ElasticNet()
 #model_name = "ElasticNet"
+
+if cuda:
+    model.cuda()
 #__________________________________________________________________
 # Training
 
