@@ -50,6 +50,7 @@ if cuda:
         device = torch.device('cuda')  # PyTorch will use the default GPU
         torch.backends.cudnn.benchmark = True
     else:
+        cuda = False
         device = torch.device('cpu')
 
     bidsroot = '/lustre04/scratch/mabus103/epoched_data/cleaned_epo.fif'
@@ -118,7 +119,7 @@ def balanced_accuracy(model, X, y=None):
     y_pred = model.predict(X)
     return balanced_accuracy_score(y_true, y_pred)
 
-# Create an instance of ShallowFBCSPNet
+"""# Create an instance of ShallowFBCSPNet
 shallow_fbcsp_net = ShallowFBCSPNet(
     in_chans=len(epochs.info['ch_names']),
     n_classes=n_classes_clas,
@@ -126,15 +127,19 @@ shallow_fbcsp_net = ShallowFBCSPNet(
     final_conv_length='auto',
 )
 model_name = "shallowFBCSPNetClassification"
+if cuda:
+    shallow_fbcsp_net.cuda()"""
 
-# Create an instance of Deep4Net
+"""# Create an instance of Deep4Net
 deep4net = Deep4Net(
     in_chans=len(epochs.info['ch_names']),
     n_classes=n_classes_clas,
     input_window_samples=X.shape[2],
     final_conv_length='auto',
 )
-#model_name = "deep4netClassification"
+model_name = "deep4netClassification"
+if cuda:
+    deep4net.cuda()"""
 
 # Create EEGClassifiers
 
@@ -150,6 +155,7 @@ deep4net = Deep4Net(
     optimizer=torch.optim.Adam,
     batch_size = bsize,
     max_epochs=20,
+    device=device,
 )"""
 
 #model= LogisticRegression()
@@ -177,6 +183,8 @@ shallow_fbcsp_net = ShallowFBCSPNet(
     final_conv_length='auto',
 )
 model_name = "shallowFBCSPNetRegression"
+if cuda:
+    shallow_fbcsp_net.cuda()
 
 # Create an instance of Deep4Net
 deep4net = Deep4Net(
@@ -186,6 +194,8 @@ deep4net = Deep4Net(
     final_conv_length='auto',
 )
 model_name = "deep4netRegression"
+if cuda:
+    deep4net.cuda()
 
 """model = EEGRegressor(
     module=deep4net,
@@ -203,6 +213,7 @@ model_name = "deep4netRegression"
     optimizer=torch.optim.Adam,
     batch_size = bsize,
     max_epochs=20,
+    device=device,
 )
 
 """
@@ -218,9 +229,8 @@ model_name = "LinearRegression"
 #model = ElasticNet() done?
 #model_name = "ElasticNet"
 
-if cuda:
-    model.cuda()
-    
+
+
 #__________________________________________________________________
 # Training
 

@@ -49,6 +49,7 @@ if cuda:
         device = torch.device('cuda')  # PyTorch will use the default GPU
         torch.backends.cudnn.benchmark = True
     else:
+        cuda = False
         device = torch.device('cpu')
 
     bidsroot = '/lustre04/scratch/mabus103/epoched_data/cleaned_epo.fif'
@@ -175,8 +176,10 @@ shallow_fbcsp_net = ShallowFBCSPNet(
     input_window_samples=X.shape[2],
     final_conv_length='auto',
 )
-#model_name = "shallowFBCSPNetRegression"
-
+model_name = "shallowFBCSPNetRegression"
+if cuda:
+    shallow_fbcsp_net.cuda()
+    
 # Create an instance of Deep4Net
 deep4net = Deep4Net(
     in_chans=len(epochs.info['ch_names']),
@@ -184,9 +187,12 @@ deep4net = Deep4Net(
     input_window_samples=X.shape[2],
     final_conv_length='auto',
 )
+model_name = "deep4netRegression"
+if cuda:
+    deep4net.cuda()
 
 """model = EEGRegressor(
-    module=shallow_fbcsp_net,
+    module=deep4net,
     criterion=MSELoss(),
     #cropped=True,
     #criterion=CroppedLoss,
@@ -198,10 +204,13 @@ deep4net = Deep4Net(
         LRScheduler,
         ProgressBar,
     ],
-    optimizer=torch.optim.AdamW,
+    optimizer=torch.optim.Adam,
     batch_size = bsize,
     max_epochs=20,
-)"""
+    device=device,
+)
+
+"""
 #model_name = "deep4netRegression"
 
 #model = svm.SVR()
@@ -216,8 +225,6 @@ deep4net = Deep4Net(
 #model = sklearn.linear_model.ElasticNet()
 #model_name = "ElasticNet"
 
-if cuda:
-    model.cuda()
 #__________________________________________________________________
 # Training
 
