@@ -2,7 +2,7 @@
 # @Author: Your name
 # @Date:   2023-08-25 13:46:44
 # @Last Modified by:   Your name
-# @Last Modified time: 2023-08-25 14:06:44
+# @Last Modified time: 2023-08-25 14:09:31
 #!/usr/bin/env python
 
 import mne
@@ -171,7 +171,7 @@ def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfo
     best_params_per_fold = {}
 
     # Create a pipeline for preprocessing
-    preprocessing_pipe = make_pipeline(
+    full_pipe = make_pipeline(
         mne.decoding.Scaler(scalings='mean'), # Scale the data
         mne.decoding.Vectorizer(), # Vectorize the data
         model # Add the ML model
@@ -180,14 +180,14 @@ def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfo
     # Outer cross-validation
     # Initialize GroupKFold with the desired number of folds
     outer = GroupKFold(nfolds)
-    for fold, (train_index_outer, test_index_outer) in enumerate(outer.split(X, y, groups)):
+    for fold, (train_index_outer, test_index_outer) in tqdm(enumerate(outer.split(X, y, groups))):
         X_train_outer, X_test_outer = X[train_index_outer], X[test_index_outer]
         y_train_outer, y_test_outer = y[train_index_outer], y[test_index_outer]
 
         inner_group = groups[train_index_outer]
 
         # inner cross-validation
-        clf = GridSearchCV(model, parameters, cv=GroupKFold(n_inner_splits).splits(X_train_outer, y_train_outer, inner_group),
+        clf = GridSearchCV(full_pipe, parameters, cv=GroupKFold(n_inner_splits).split(X_train_outer, y_train_outer, inner_group),
                            refit=True)
         clf.fit(X_train_outer, y_train_outer) # Fit the model on the training data
 
