@@ -35,7 +35,7 @@ from sklearn.linear_model import ElasticNet
 # Set kind of Cross validation and task to perform 
 part = 'between' # 'between' or 'within' participant
 task = 'classification' # 'classification' or 'regression'
-dl = False # Whether to use a deep learning or standard ML model
+dl = True # Whether to use a deep learning or standard ML model
 
 #____________________________________________________________________________
 # Application of cross validation for different models
@@ -67,6 +67,7 @@ elif "mplab" in current_directory:
     bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
     log_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/logs'
 else:
+    device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
     bidsroot = '/home/mathilda/MITACS/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
     log_dir='/home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/logs'
 
@@ -124,7 +125,7 @@ def balanced_accuracy(model, X, y=None):
     y_pred = model.predict(X)
     return balanced_accuracy_score(y_true, y_pred)
 
-"""# Create an instance of ShallowFBCSPNet
+# Create an instance of ShallowFBCSPNet
 shallow_fbcsp_net = ShallowFBCSPNet(
     in_chans=len(epochs.info['ch_names']),
     n_classes=n_classes_clas,
@@ -133,7 +134,7 @@ shallow_fbcsp_net = ShallowFBCSPNet(
 )
 model_name = "shallowFBCSPNetClassification"
 if cuda:
-    shallow_fbcsp_net.cuda()"""
+    shallow_fbcsp_net.cuda()
 
 """# Create an instance of Deep4Net
 deep4net = Deep4Net(
@@ -148,23 +149,23 @@ if cuda:
 
 # Create EEGClassifiers
 
-"""model = EEGClassifier(
+model = EEGClassifier(
     module=shallow_fbcsp_net,
     callbacks = [
         Checkpoint,
         EarlyStopping,
         LRScheduler,
-        #ProgressBar,
+        ProgressBar,
         EpochScoring(scoring=balanced_accuracy, lower_is_better=False),
     ],
     optimizer=torch.optim.Adam,
     batch_size = bsize,
     max_epochs=20,
     device=device,
-)"""
+)
 
-model= LogisticRegression()
-model_name = "LogisticRegression"
+#model= LogisticRegression()
+#model_name = "LogisticRegression"
 
 #model = svm.SVC()
 #model_name = "SVC"
@@ -200,9 +201,9 @@ deep4net = Deep4Net(
 )
 model_name = "deep4netRegression"
 if cuda:
-    deep4net.cuda()"""
+    deep4net.cuda()
 
-"""model = EEGRegressor(
+model = EEGRegressor(
     module=deep4net,
     criterion=MSELoss(),
     #cropped=True,
@@ -219,9 +220,9 @@ if cuda:
     batch_size = bsize,
     max_epochs=20,
     device=device,
-)
+)""" 
 
-"""
+
 #model = svm.SVR() #done
 #model_name = "SVR"
 
@@ -303,7 +304,7 @@ if dl == False and part == 'between':
 if dl == True and part == 'within':
     mean_score, all_true_labels, all_predictions, score_test = trainingDL_within(model, X, y, task=task, groups=groups, writer=writer)
 if dl == True and part == 'between':
-    mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task=task, nfolds=4, n_inner_splits = 5, groups=groups, writer=writer)
+    mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task=task, nfolds=3, n_inner_splits = 2, groups=groups, writer=writer)
 
 # Close the SummaryWriter when done
 writer.close()

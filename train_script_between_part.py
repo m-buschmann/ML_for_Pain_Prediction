@@ -34,9 +34,10 @@ def trainingDL_between(model, X, y, task = 'regression', nfolds=4, n_inner_split
     X = X.astype(np.int64)
 
     # Convert categorical labels to integer indices
-    label_encoder = LabelEncoder()
-    y = label_encoder.fit_transform(y)
-    y = torch.tensor(y, dtype=torch.int64)
+    if task == "classification":
+        label_encoder = LabelEncoder()
+        y = label_encoder.fit_transform(y)
+        y = torch.tensor(y, dtype=torch.int64)
 
     # Initialize GroupKFold with the desired number of folds
     gkf = GroupKFold(n_splits=nfolds)
@@ -76,7 +77,7 @@ def trainingDL_between(model, X, y, task = 'regression', nfolds=4, n_inner_split
         pipe.fit(X_train, y_train)
         # Predict on the test set
         y_pred = pipe.predict(X_val)
-        
+
         if task == 'regression':
             mse = mean_squared_error(y_val, y_pred)
             scores.append(mse)
@@ -184,17 +185,17 @@ def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfo
         # inner cross-validation
         clf = GridSearchCV(full_pipe, parameters, cv=GroupKFold(n_inner_splits).split(X_train_outer, y_train_outer, inner_group),
                            refit=True)
-        clf.fit(X_train_outer, y_train_outer) # Fit the model on the training data is this still splitting inner test and train?
+        clf.fit(X_train_outer, y_train_outer) # Fit the model on the training data
 
         # Store best parameters for each fold
         best_params_fold = clf.best_params_
-        best_params_per_fold[fold] = best_params_fold #do we even need this?
-        best_params_counts.update([str(best_params_fold)]) #added again? how do we count most common parameter without this?
+        #best_params_per_fold[fold] = best_params_fold #do we even need this?
+        best_params_counts.update([str(best_params_fold)]) 
         
         y_pred_test = clf.predict(X_test_outer)
 
         # Store lists of true values and predictions 
-        all_true_labels[test_index_outer] = y_test_outer#
+        all_true_labels[test_index_outer] = y_test_outer#probably dont nee
         all_predictions[test_index_outer] = y_pred_test #added again?
 
         # MSEs or accuracies from outer loop

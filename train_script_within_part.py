@@ -30,9 +30,10 @@ def trainingDL_within(model, X, y, task='classification', groups=None, writer=No
     X = X.astype(np.float32)
 
     # Convert categorical labels to integer indices
-    label_encoder = LabelEncoder()
-    y = label_encoder.fit_transform(y)
-    y = torch.tensor(y, dtype=torch.int64)
+    if task == "classification":
+        label_encoder = LabelEncoder()
+        y = label_encoder.fit_transform(y)
+        y = torch.tensor(y, dtype=torch.int64)
 
     # Initialize an array to store accuracy scores for each participant
     participant_scores = []
