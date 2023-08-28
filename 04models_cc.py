@@ -65,11 +65,15 @@ if cuda:
     log_dir=f'/lustre04/scratch/mabus103/ML_for_Pain_Prediction/logs'
 
 elif "mplab" in current_directory:
+    model_name = "SGD" #set the model to use. also determines dl and kind of task
+    part = 'between' # 'between' or 'within' participant
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
     #bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/cleaned_epo.fif'
     bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
     log_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/logs'
 else:
+    model_name = "sgd" #set the model to use. also determines dl and kind of task
+    part = 'between'# 'between' or 'within' participant
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
     bidsroot = '/home/mathilda/MITACS/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
     log_dir='/home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/logs'
@@ -134,15 +138,7 @@ n_classes_reg=1
 # Training
 
 # Choose parameters for nested CV
-if model_name == "LinearRegression":
-    model = LinearRegression()
-    parameters = {
-        'linearregression__n_jobs': [-1]
-    }
-    task = 'regression'
-    dl = False
-
-elif model_name == "LogisticRegression":
+if model_name == "LogisticRegression":
     model= LogisticRegression()
     parameters = {
         'logisticregression__n_jobs' : [-1],
@@ -151,6 +147,14 @@ elif model_name == "LogisticRegression":
         'logisticregression__C': [0.1, 1, 10, 100],
     }
     task = 'classification'
+    dl = False
+
+elif model_name == "LinearRegression":
+    model = LinearRegression()
+    parameters = {
+        'linearregression__n_jobs': [-1]
+    }
+    task = 'regression'
     dl = False
 
 elif model_name == "SVC":
@@ -207,6 +211,15 @@ elif model_name == "ElasticNet":
         'elasticnet__alpha': [0.01, 0.1, 1.0],        # Regularization strength (higher values add more penalty)
         'elasticnet__l1_ratio': [0.1, 0.5, 0.9],      # Mixing parameter between L1 and L2 penalty (0: Ridge, 1: Lasso)
         'elasticnet__max_iter': [1000, 2000, 5000],   # Maximum number of iterations for optimization
+    }
+    task = 'regression'
+    dl = False
+
+elif model_name == "SGD":
+    model = linear_model.SGDRegressor()
+    parameters = {
+        'sgdregressor__penalty' : ['l2', 'l1', 'elasticnet'],
+        'sgdregressor__alpha': [0.01, 0.1, 1.0],
     }
     task = 'regression'
     dl = False

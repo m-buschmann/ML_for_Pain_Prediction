@@ -27,7 +27,7 @@ import csv
 import os
 
 # Set kind of Cross validation and task to perform 
-part = 'within' # 'between' or 'within' participant
+part = 'between' # 'between' or 'within' participant
 task = 'regression' # 'classification' or 'regression'
 dl = False # Whether to use a deep learning or standard ML model
 
@@ -219,11 +219,14 @@ if cuda:
 #model = RandomForestRegressor()
 #model_name = "RFRegressor"
 
-model = LinearRegression()  
-model_name = "LinearRegression"
+#model = LinearRegression()  
+#model_name = "LinearRegression"
 
 #model = linear_model.ElasticNet()
 #model_name = "ElasticNet"
+
+model = linear_model.SGDRegressor()
+model_name = "SGD"
 
 #__________________________________________________________________
 # Training
@@ -277,6 +280,11 @@ elif model_name == "ElasticNet":
         'elasticnet__alpha': [0.01, 0.1, 1.0],        # Regularization strength (higher values add more penalty)
         'elasticnet__l1_ratio': [0.1, 0.5, 0.9],      # Mixing parameter between L1 and L2 penalty (0: Ridge, 1: Lasso)
         'elasticnet__max_iter': [1000, 2000, 5000],   # Maximum number of iterations for optimization
+    }
+elif model_name == "SGD":
+    parameters = {
+        'sgdregressor__penalty' : ['l2', 'l1', 'elasticnet'],
+        'sgdregressor__alpha': [0.01, 0.1, 1.0],
     }
 
 print(model_name, part)
