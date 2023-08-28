@@ -31,6 +31,7 @@ import numpy as np
 import csv
 import os
 from sklearn.linear_model import ElasticNet
+import sys
 
 # Set kind of Cross validation and task to perform 
 part = 'between' # 'between' or 'within' participant
@@ -51,6 +52,7 @@ cuda = "lustre" in current_directory
 # If cuda is True and a GPU is available, set up GPU acceleration in PyTorch
 # And set bidsroot according to device 
 if cuda:
+    model_name = sys.argv[1]
     if torch.cuda.is_available():
         device = torch.device('cuda')  # PyTorch will use the default GPU
         torch.backends.cudnn.benchmark = True
@@ -125,8 +127,8 @@ def balanced_accuracy(model, X, y=None):
     y_pred = model.predict(X)
     return balanced_accuracy_score(y_true, y_pred)
 
-# Create an instance of ShallowFBCSPNet
-shallow_fbcsp_net = ShallowFBCSPNet(
+"""# Create an instance of ShallowFBCSPNet
+shallow_fbcsp_net_classification = ShallowFBCSPNet(
     in_chans=len(epochs.info['ch_names']),
     n_classes=n_classes_clas,
     input_window_samples=X.shape[2],
@@ -134,10 +136,10 @@ shallow_fbcsp_net = ShallowFBCSPNet(
 )
 model_name = "shallowFBCSPNetClassification"
 if cuda:
-    shallow_fbcsp_net.cuda()
+    shallow_fbcsp_net_classification.cuda()"""
 
 """# Create an instance of Deep4Net
-deep4net = Deep4Net(
+deep4net_classification = Deep4Net(
     in_chans=len(epochs.info['ch_names']),
     n_classes=n_classes_clas,
     input_window_samples=X.shape[2],
@@ -149,8 +151,8 @@ if cuda:
 
 # Create EEGClassifiers
 
-model = EEGClassifier(
-    module=shallow_fbcsp_net,
+"""model = EEGClassifier(
+    module=shallow_fbcsp_net_classification,
     callbacks = [
         Checkpoint,
         EarlyStopping,
@@ -162,7 +164,7 @@ model = EEGClassifier(
     batch_size = bsize,
     max_epochs=20,
     device=device,
-)
+)"""
 
 #model= LogisticRegression()
 #model_name = "LogisticRegression"
@@ -181,29 +183,9 @@ optimizer_lr = 0.000625
 optimizer_weight_decay = 0
 n_classes_reg=1
 
-"""# Create an instance of ShallowFBCSPNet
-shallow_fbcsp_net = ShallowFBCSPNet(
-    in_chans=len(epochs.info['ch_names']),
-    n_classes=n_classes_reg,
-    input_window_samples=X.shape[2],
-    final_conv_length='auto',
-)
-model_name = "shallowFBCSPNetRegression"
-if cuda:
-    shallow_fbcsp_net.cuda()"""
 
-"""# Create an instance of Deep4Net
-deep4net = Deep4Net(
-    in_chans=len(epochs.info['ch_names']),
-    n_classes=n_classes_reg,
-    input_window_samples=X.shape[2],
-    final_conv_length='auto',
-)
-model_name = "deep4netRegression"
-if cuda:
-    deep4net.cuda()
 
-model = EEGRegressor(
+"""model = EEGRegressor(
     module=deep4net,
     criterion=MSELoss(),
     #cropped=True,
@@ -242,10 +224,13 @@ model = EEGRegressor(
 
 # Choose parameters for nested CV
 if model_name == "LinearRegression":
+    model = LinearRegression()
     parameters = {
         'linearregression__n_jobs': [-1]
     }
+    
 elif model_name == "LogisticRegression":
+    model= LogisticRegression()
     parameters = {
         'logisticregression__n_jobs' : [-1],
         'logisticregression__solver': ['saga'],
@@ -253,20 +238,25 @@ elif model_name == "LogisticRegression":
         'logisticregression__C': [0.1, 1, 10, 100],
     }
 elif model_name == "SVC":
+    svm.SVC()
     parameters = { 
         'svc__C': [0.1, 1, 10, 100],
         'svc__kernel': ['linear', 'poly', 'rbf', 'sigmoid'],
         'svc__gamma': ['scale', 'auto', 0.1, 1, 10],
         'svc__shrinking': [True, False],
     }
+
 elif model_name == "SVR":
+    model = svm.SVR()
     parameters = {
         'svr__kernel': ['linear', 'rbf'],
         'svr__C': [0.1, 1, 10],
         'svr__epsilon': [0.01, 0.1, 0.2],
         'svr__shrinking': [True, False]
     }
+
 elif model_name == "RFClassifier":
+    model = RandomForestClassifier()
     parameters = {
         'randomforestclassifier__n_jobs' : [-1],
         'randomforestclassifier__n_estimators': [50, 100, 200],
@@ -275,7 +265,9 @@ elif model_name == "RFClassifier":
         'randomforestclassifier__min_samples_leaf': [1, 2, 4],
         'randomforestclassifier__bootstrap': [True, False]
     }
+
 elif model_name == "RFRegressor":
+    model = RandomForestRegressor()
     parameters = {
         'randomforestregressor__n_jobs' : [-1],
         'randomforestregressor__n_estimators': [50, 100, 200],
@@ -284,13 +276,126 @@ elif model_name == "RFRegressor":
         'randomforestregressor__min_samples_leaf': [1, 2, 4],
         'randomforestregressor__bootstrap': [True, False]
     }
+
 elif model_name == "ElasticNet":
+    model = ElasticNet()
     parameters = {
         'elasticnet__alpha': [0.01, 0.1, 1.0],        # Regularization strength (higher values add more penalty)
         'elasticnet__l1_ratio': [0.1, 0.5, 0.9],      # Mixing parameter between L1 and L2 penalty (0: Ridge, 1: Lasso)
         'elasticnet__max_iter': [1000, 2000, 5000],   # Maximum number of iterations for optimization
     }
 
+elif model_name == "deep4netClassification":
+    # Create an instance of Deep4Net
+    deep4net_classification = Deep4Net(
+        in_chans=len(epochs.info['ch_names']),
+        n_classes=n_classes_clas,
+        input_window_samples=X.shape[2],
+        final_conv_length='auto',
+    )
+    if cuda:
+        deep4net_classification.cuda()
+
+    model = EEGClassifier(
+        module=deep4net_classification,
+        callbacks = [
+            Checkpoint,
+            EarlyStopping,
+            LRScheduler,
+            ProgressBar,
+            EpochScoring(scoring=balanced_accuracy, lower_is_better=False),
+        ],
+        optimizer=torch.optim.Adam,
+        batch_size = bsize,
+        max_epochs=20,
+        device=device,
+    )
+
+elif model_name == "deep4netRegression":
+    # Create an instance of Deep4Net
+    deep4net_regression = Deep4Net(
+        in_chans=len(epochs.info['ch_names']),
+        n_classes=n_classes_reg,
+        input_window_samples=X.shape[2],
+        final_conv_length='auto',
+    )
+    if cuda:
+        deep4net_regression.cuda()
+
+    model = EEGRegressor(
+        module=deep4net_regression,
+        criterion=MSELoss(),
+        #cropped=True,
+        #criterion=CroppedLoss,
+        #criterion__loss_function=torch.nn.functional.mse_loss,
+        callbacks = [
+            'neg_root_mean_squared_error',
+            Checkpoint(load_best=True),
+            EarlyStopping,
+            LRScheduler,
+            ProgressBar,
+        ],
+        optimizer=torch.optim.Adam,
+        batch_size = bsize,
+        max_epochs=20,
+        device=device,
+    )
+
+elif model_name == "shallowFBCSPNetClassification":
+    # Create an instance of ShallowFBCSPNet
+    shallow_fbcsp_net_classification = ShallowFBCSPNet(
+        in_chans=len(epochs.info['ch_names']),
+        n_classes=n_classes_clas,
+        input_window_samples=X.shape[2],
+        final_conv_length='auto',
+    )
+    if cuda:
+        shallow_fbcsp_net_classification.cuda()
+
+    model = EEGClassifier(
+        module=shallow_fbcsp_net_classification,
+        callbacks = [
+            Checkpoint,
+            EarlyStopping,
+            LRScheduler,
+            ProgressBar,
+            EpochScoring(scoring=balanced_accuracy, lower_is_better=False),
+        ],
+        optimizer=torch.optim.Adam,
+        batch_size = bsize,
+        max_epochs=20,
+        device=device,
+    )
+
+elif model_name == "shallowFBCSPNetRegression":
+    # Create an instance of ShallowFBCSPNet
+    shallow_fbcsp_net_regression = ShallowFBCSPNet(
+        in_chans=len(epochs.info['ch_names']),
+        n_classes=n_classes_reg,
+        input_window_samples=X.shape[2],
+        final_conv_length='auto',
+    )
+    if cuda:
+        shallow_fbcsp_net_regression.cuda()
+
+    model = EEGRegressor(
+        module=shallow_fbcsp_net_regression,
+        criterion=MSELoss(),
+        #cropped=True,
+        #criterion=CroppedLoss,
+        #criterion__loss_function=torch.nn.functional.mse_loss,
+        callbacks = [
+            'neg_root_mean_squared_error',
+            Checkpoint(load_best=True),
+            EarlyStopping,
+            LRScheduler,
+            ProgressBar,
+        ],
+        optimizer=torch.optim.Adam,
+        batch_size = bsize,
+        max_epochs=20,
+        device=device,
+    )
 
 print(model_name, part)
 # Get writer for tensorboard
