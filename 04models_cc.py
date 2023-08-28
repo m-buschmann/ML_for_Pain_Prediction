@@ -34,9 +34,9 @@ from sklearn.linear_model import ElasticNet
 import sys
 
 # Set kind of Cross validation and task to perform 
-part = 'between' # 'between' or 'within' participant
-task = 'classification' # 'classification' or 'regression'
-dl = True # Whether to use a deep learning or standard ML model
+#part = 'between' # 'between' or 'within' participant
+#task = 'classification' # 'classification' or 'regression'
+#dl = True # Whether to use a deep learning or standard ML model
 
 #____________________________________________________________________________
 # Application of cross validation for different models
@@ -53,6 +53,7 @@ cuda = "lustre" in current_directory
 # And set bidsroot according to device 
 if cuda:
     model_name = sys.argv[1]
+    part = sys.argv[2]
     if torch.cuda.is_available():
         device = torch.device('cuda')  # PyTorch will use the default GPU
         torch.backends.cudnn.benchmark = True
@@ -101,12 +102,6 @@ X = epochs.get_data()
 # Rescale X to a bigger number
 X = X * 10e6
 
-if task == 'classification':
-    y = epochs.metadata["task"].values  
-elif task == 'regression':
-    y = epochs.metadata["rating"].values #maybe also intensity
-
-
 # Define the groups (participants) to avoid splitting them across train and test
 groups = epochs.metadata["participant_id"].values
 
@@ -127,54 +122,6 @@ def balanced_accuracy(model, X, y=None):
     y_pred = model.predict(X)
     return balanced_accuracy_score(y_true, y_pred)
 
-"""# Create an instance of ShallowFBCSPNet
-shallow_fbcsp_net_classification = ShallowFBCSPNet(
-    in_chans=len(epochs.info['ch_names']),
-    n_classes=n_classes_clas,
-    input_window_samples=X.shape[2],
-    final_conv_length='auto',
-)
-model_name = "shallowFBCSPNetClassification"
-if cuda:
-    shallow_fbcsp_net_classification.cuda()"""
-
-"""# Create an instance of Deep4Net
-deep4net_classification = Deep4Net(
-    in_chans=len(epochs.info['ch_names']),
-    n_classes=n_classes_clas,
-    input_window_samples=X.shape[2],
-    final_conv_length='auto',
-)
-model_name = "deep4netClassification"
-if cuda:
-    deep4net.cuda()"""
-
-# Create EEGClassifiers
-
-"""model = EEGClassifier(
-    module=shallow_fbcsp_net_classification,
-    callbacks = [
-        Checkpoint,
-        EarlyStopping,
-        LRScheduler,
-        ProgressBar,
-        EpochScoring(scoring=balanced_accuracy, lower_is_better=False),
-    ],
-    optimizer=torch.optim.Adam,
-    batch_size = bsize,
-    max_epochs=20,
-    device=device,
-)"""
-
-#model= LogisticRegression()
-#model_name = "LogisticRegression"
-
-#model = svm.SVC()
-#model_name = "SVC"
-
-#model = RandomForestClassifier()
-#model_name = "RFClassifier"
-
 #____________________________________________________________________
 # Create EEGRegressors
 
@@ -182,42 +129,6 @@ if cuda:
 optimizer_lr = 0.000625
 optimizer_weight_decay = 0
 n_classes_reg=1
-
-
-
-"""model = EEGRegressor(
-    module=deep4net,
-    criterion=MSELoss(),
-    #cropped=True,
-    #criterion=CroppedLoss,
-    #criterion__loss_function=torch.nn.functional.mse_loss,
-    callbacks = [
-        'neg_root_mean_squared_error',
-        Checkpoint(load_best=True),
-        EarlyStopping,
-        LRScheduler,
-        ProgressBar,
-    ],
-    optimizer=torch.optim.Adam,
-    batch_size = bsize,
-    max_epochs=20,
-    device=device,
-)""" 
-
-
-#model = svm.SVR() #done
-#model_name = "SVR"
-
-#model = RandomForestRegressor() #done
-#model_name = "RFRegressor"
-
-#model = LinearRegression()  #done
-#model_name = "LinearRegression"
-
-#model = ElasticNet() done?
-#model_name = "ElasticNet"
-
-
 
 #__________________________________________________________________
 # Training
@@ -228,7 +139,9 @@ if model_name == "LinearRegression":
     parameters = {
         'linearregression__n_jobs': [-1]
     }
-    
+    task = 'regression'
+    dl = False
+
 elif model_name == "LogisticRegression":
     model= LogisticRegression()
     parameters = {
@@ -237,14 +150,19 @@ elif model_name == "LogisticRegression":
         'logisticregression__penalty': ['l1', 'l2', None],
         'logisticregression__C': [0.1, 1, 10, 100],
     }
+    task = 'classification'
+    dl = False
+
 elif model_name == "SVC":
-    svm.SVC()
+    model = svm.SVC()
     parameters = { 
         'svc__C': [0.1, 1, 10, 100],
         'svc__kernel': ['linear', 'poly', 'rbf', 'sigmoid'],
         'svc__gamma': ['scale', 'auto', 0.1, 1, 10],
         'svc__shrinking': [True, False],
     }
+    task = 'classification'
+    dl = False
 
 elif model_name == "SVR":
     model = svm.SVR()
@@ -254,6 +172,8 @@ elif model_name == "SVR":
         'svr__epsilon': [0.01, 0.1, 0.2],
         'svr__shrinking': [True, False]
     }
+    task = 'regression'
+    dl = False
 
 elif model_name == "RFClassifier":
     model = RandomForestClassifier()
@@ -265,6 +185,8 @@ elif model_name == "RFClassifier":
         'randomforestclassifier__min_samples_leaf': [1, 2, 4],
         'randomforestclassifier__bootstrap': [True, False]
     }
+    task = 'classification'
+    dl = False
 
 elif model_name == "RFRegressor":
     model = RandomForestRegressor()
@@ -276,6 +198,8 @@ elif model_name == "RFRegressor":
         'randomforestregressor__min_samples_leaf': [1, 2, 4],
         'randomforestregressor__bootstrap': [True, False]
     }
+    task = 'regression'
+    dl = False
 
 elif model_name == "ElasticNet":
     model = ElasticNet()
@@ -284,6 +208,8 @@ elif model_name == "ElasticNet":
         'elasticnet__l1_ratio': [0.1, 0.5, 0.9],      # Mixing parameter between L1 and L2 penalty (0: Ridge, 1: Lasso)
         'elasticnet__max_iter': [1000, 2000, 5000],   # Maximum number of iterations for optimization
     }
+    task = 'regression'
+    dl = False
 
 elif model_name == "deep4netClassification":
     # Create an instance of Deep4Net
@@ -310,6 +236,8 @@ elif model_name == "deep4netClassification":
         max_epochs=20,
         device=device,
     )
+    task = 'classification'
+    dl = True
 
 elif model_name == "deep4netRegression":
     # Create an instance of Deep4Net
@@ -340,6 +268,8 @@ elif model_name == "deep4netRegression":
         max_epochs=20,
         device=device,
     )
+    task = 'regression'
+    dl = True
 
 elif model_name == "shallowFBCSPNetClassification":
     # Create an instance of ShallowFBCSPNet
@@ -366,6 +296,8 @@ elif model_name == "shallowFBCSPNetClassification":
         max_epochs=20,
         device=device,
     )
+    task = 'classification'
+    dl = True
 
 elif model_name == "shallowFBCSPNetRegression":
     # Create an instance of ShallowFBCSPNet
@@ -396,8 +328,17 @@ elif model_name == "shallowFBCSPNetRegression":
         max_epochs=20,
         device=device,
     )
+    task = 'regression'
+    dl = True
 
 print(model_name, part)
+
+if task == 'classification':
+    y = epochs.metadata["task"].values  
+elif task == 'regression':
+    y = epochs.metadata["rating"].values #maybe also intensity
+
+
 # Get writer for tensorboard
 writer = SummaryWriter(log_dir=opj(log_dir, model_name, part))
 
