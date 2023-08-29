@@ -62,7 +62,8 @@ if cuda:
         device = torch.device('cpu')
 
     bidsroot = '/lustre04/scratch/mabus103/epoched_data/cleaned_epo.fif'
-    log_dir=f'/lustre04/scratch/mabus103/ML_for_Pain_Prediction/logs'
+    log_dir=f'/lustre04/scratch/mabus103/logs'
+    #log_dir=f'/lustre04/scratch/mabus103/ML_for_Pain_Prediction/logs'
 
 elif "mplab" in current_directory:
     model_name = "SGD" #set the model to use. also determines dl and kind of task
@@ -72,7 +73,7 @@ elif "mplab" in current_directory:
     bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
     log_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/logs'
 else:
-    model_name = "sgd" #set the model to use. also determines dl and kind of task
+    model_name = "shallowFBCSPNetRegression" #set the model to use. also determines dl and kind of task
     part = 'between'# 'between' or 'within' participant
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
     bidsroot = '/home/mathilda/MITACS/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
