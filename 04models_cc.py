@@ -364,7 +364,7 @@ if dl == False and part == 'between':
 if dl == True and part == 'within':
     mean_score, all_true_labels, all_predictions, score_test = trainingDL_within(model, X, y, task=task, groups=groups, writer=writer)
 if dl == True and part == 'between':
-    mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task=task, nfolds=3, n_inner_splits = 2, groups=groups, writer=writer)
+    mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task=task, nfolds=4, n_inner_splits = 5, groups=groups, writer=writer)
 
 # Close the SummaryWriter when done
 writer.close()
