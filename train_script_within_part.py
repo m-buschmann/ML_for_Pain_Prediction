@@ -4,14 +4,18 @@ import mne
 import numpy as np
 import torch
 from sklearn.pipeline import make_pipeline
-from sklearn.model_selection import KFold, train_test_split, GridSearchCV
-from sklearn.metrics import accuracy_score, mean_squared_error
+from sklearn.model_selection import KFold, train_test_split, GridSearchCV, StratifiedKFold
+from sklearn.metrics import accuracy_score, mean_squared_error, balanced_accuracy_score
 from collections import Counter
+from sklearn.base import clone
 from sklearn.preprocessing import LabelEncoder
+from skorch.dataset import Dataset
 from tensorboardX import SummaryWriter
 from sklearn.metrics import r2_score
+from skorch.helper import predefined_split
 
-def trainingDL_within(model, X, y, task='classification', groups=None, writer=None):
+
+def trainingDL_within(model, X, y, task='classification', nfolds=10, groups=None, writer=None):
     """
     Train and evaluate a machine learning model using cross-validation within participants.
 
@@ -26,7 +30,7 @@ def trainingDL_within(model, X, y, task='classification', groups=None, writer=No
     - mean_score (float): Mean accuracy (for classification) or mean squared error (for regression) across participants.
     - all_true_labels (list): List of true class labels or values across all validation participants.
     - all_predictions (list): List of predicted class labels or values across all validation participants.
-    """    
+    """
     X = X.astype(np.float32)
 
     # Convert categorical labels to integer indices
@@ -34,77 +38,90 @@ def trainingDL_within(model, X, y, task='classification', groups=None, writer=No
         label_encoder = LabelEncoder()
         y = label_encoder.fit_transform(y)
         y = torch.tensor(y, dtype=torch.int64)
+    else:
+        y = torch.tensor(y, dtype=torch.float32)
 
     # Initialize an array to store accuracy scores for each participant
     participant_scores = []
     # Initialize arrays to store true labels and predictions for each fold
     all_true_labels = []
     all_predictions = []
-    # Create a pipeline for preprocessing and classification
-    pipe = make_pipeline(
-        mne.decoding.Scaler(scalings='mean'),  # Scale the data
-        model
-    )
 
     # Get unique participant IDs
     unique_participants = np.unique(groups)
     train_iteration = 0
 
+    fold_scores = []
+
     # Loop over each participant
     for participant in unique_participants:
         # Get the data indices for the current participant
         participant_indices = np.where(groups == participant)[0]
-        # Split participant data into training and testing using train_test_split
-        train_idx, test_idx = train_test_split(participant_indices, test_size=0.2, random_state=42)
-        X_train, X_test = X[train_idx], X[test_idx]
-        y_train, y_test = y[train_idx], y[test_idx]
 
-        # Fit the model on the training data
-        pipe.fit(X_train, y_train)
-        # Predict on the test set
-        y_pred = pipe.predict(X_test)
+        X_part, y_part = X[participant_indices], y[participant_indices]
+
+        # K fold cross validation
+        if task ==  'classification':
+            fold_split = StratifiedKFold(n_splits=nfolds, shuffle=True, random_state=42).split(X_part, y_part)
+        else:
+            fold_split = KFold(n_splits=nfolds, shuffle=True, random_state=42).split(X_part, y_part)
+
+        y_pred = np.empty_like(y_part)
+
+        for train_idx, test_idx in fold_split:
+            clf_fold = clone(model)
+
+            # Split train and test
+            X_train_fold, X_test = X_part[train_idx], X_part[test_idx]
+            y_train_fold, y_test = y_part[train_idx], y_part[test_idx]
+
+            # Split train and validation
+            if task == 'regression':
+                stratify = None
+            else:
+                stratify = y_train_fold
+
+            X_train_fold, X_valid, y_train_fold, y_valid = train_test_split(
+                X_train_fold,
+                y_train_fold,
+                test_size=0.2,
+                stratify=stratify,
+                shuffle=True,
+                random_state=42,
+            )
             
-        if task == 'regression':
-            mse = mean_squared_error(y_test, y_pred)
-            participant_scores.append(mse)
-            print("Participant", participant, "MSE:", mse)
-            # Convert the list of tensors to a numpy array of floats
-            y_test = np.array([tensor.item() for tensor in y_test])
-            # Concatenate the NumPy arrays in the predictions list
-            y_pred = [prediction[0].item() for prediction in y_pred]
-            #mse_mean = np.mean(participant_scores)
-            writer.add_scalar('Train Loss/MSE', mse, train_iteration)
-            r2 = r2_score(y_test, y_pred)
-            writer.add_scalar('Test R-squared', r2, train_iteration)
-    
-        if task == 'classification':
-            accuracy = accuracy_score(y_test, y_pred)
-            participant_scores.append(accuracy)
-            print("Participant", participant, "Accuracy:", accuracy)
-            # Convert the predicted integer indices to original class names
-            y_test = label_encoder.inverse_transform(y_test)
-            y_pred = label_encoder.inverse_transform(y_pred)
-            #accuracy_mean = np.mean(participant_scores)
-            writer.add_scalar('Train Accuracy', accuracy, train_iteration)
+            if task == 'regression':
+                y_valid = y_valid.unsqueeze(1)
+                y_train_fold = y_train_fold.unsqueeze(1)
+
+            valid_set = Dataset(X_valid, y_valid)
+            clf_fold.set_params(
+                **{"train_split": predefined_split(valid_set)}
+            )
+
+            clf_fold.fit(X_train_fold, y_train_fold)
+            y_pred[test_idx] = clf_fold.predict(X_test).flatten()
+
+            if task == 'regression':
+                fold_scores.append(np.sqrt(mean_squared_error(y_test, y_pred[test_idx])))
+                print("fold RMSE: ", fold_scores[-1])
+            else:
+                fold_scores.append(balanced_accuracy_score(y_test, y_pred[test_idx]))
+                print("fold accuracy: ", fold_scores[-1])
+
+        participant_scores.append(np.mean(fold_scores))
 
         # Append the true class names to the list
-        all_true_labels.extend(y_test)
+        all_true_labels.extend(y_part)
         # Append the predicted label strings to the list
         all_predictions.extend(y_pred)
 
-        # Increment the counter for the next training iteration
-        train_iteration += 1
-
-    # Output the first 10 elements of true labels and predictions
-    print("True Labels (First 10 elements):", all_true_labels[:10])
-    print("Predictions (First 10 elements):", all_predictions[:10])
-
     # Calculate the mean accuracy across all participants
     mean_score = np.mean(participant_scores)
-    print("Mean Accuracy/MSE across all participants: {:.3f}".format(mean_score))
+    print("Mean Accuracy/RMSE across all participants: {:.3f}".format(mean_score))
     writer.close()
-    score_test = 0
-    return mean_score, all_true_labels[:], all_predictions[:], score_test
+
+    return mean_score, all_true_labels[:], all_predictions[:], participant_scores
 
 def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfolds=4, n_inner_splits = 5, groups=None, writer=None):
     """
@@ -128,11 +145,11 @@ def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfol
     """
     # Initialize arrays to store true labels and predictions for each fold
     all_true_labels = np.empty_like(y)
-    all_predictions = np.empty_like(y)   
+    all_predictions = np.empty_like(y)
 
     # Store scores from outer loop
-    score_test = [] 
-    
+    score_test = []
+
     # Initialize dictionaries to store best parameters and their occurrences
     best_params_counts = Counter()
     best_params_per_fold = {}
@@ -158,7 +175,7 @@ def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfol
 
         # Split participant data into training and testing using train_test_split
         train_idx, test_idx = train_test_split(participant_indices, test_size=1/nfolds)
-        
+
         X_train_outer, X_test_outer = X[train_idx], X[test_idx]
         y_train_outer, y_test_outer = y[train_idx], y[test_idx]
 
@@ -166,7 +183,7 @@ def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfol
         # fit regressor to training data of inner CV
         clf = GridSearchCV(full_pipe, parameters, cv = KFold(n_inner_splits).split(X_train_outer, y_train_outer), refit = True)
         clf.fit(X_train_outer, y_train_outer)
-        
+
         # Store best parameters for each fold
         best_params_fold = clf.best_params_
         best_params_counts.update([str(best_params_fold)])  
