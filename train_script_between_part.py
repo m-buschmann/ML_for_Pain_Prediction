@@ -4,16 +4,29 @@ import mne
 import numpy as np
 import torch
 from sklearn.pipeline import make_pipeline
-from sklearn.model_selection import train_test_split, GroupKFold, KFold, GridSearchCV
+from sklearn.model_selection import train_test_split, GroupKFold, KFold, GridSearchCV, GroupShuffleSplit
 from sklearn.metrics import accuracy_score, mean_squared_error
 from collections import Counter
+from sklearn.base import clone
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from tensorboardX import SummaryWriter
 from sklearn.metrics import r2_score
+from skorch.dataset import Dataset
+from skorch.helper import predefined_split
 
 
 
-def trainingDL_between(model, X, y, task = 'regression', nfolds=4, n_inner_splits=5, groups=None, writer=None):
+def group_train_valid_split(X, y, groups, proportion_valid=0.2):
+    splitter = GroupShuffleSplit(
+        test_size=proportion_valid, n_splits=2, random_state=42
+    )
+    split = splitter.split(X, groups=groups)
+    train_inds, valid_inds = next(split)
+    return Dataset(X[train_inds], y[train_inds]), Dataset(X[valid_inds], y[valid_inds])
+
+
+
+def trainingDL_between(model, X, y, task = 'regression', nfolds=10, groups=None, writer=None):
     """
     Train and evaluate a machine learning model using cross-validation.
 
@@ -38,23 +51,24 @@ def trainingDL_between(model, X, y, task = 'regression', nfolds=4, n_inner_split
         label_encoder = LabelEncoder()
         y = label_encoder.fit_transform(y)
         y = torch.tensor(y, dtype=torch.int64)
+    else:
+        # Convert numerical labels to float
+        y = torch.tensor(y, dtype=torch.float32)
 
     # Initialize GroupKFold with the desired number of folds
     gkf = GroupKFold(n_splits=nfolds)
-    
+
     # Initialize arrays to store true labels and predictions for each fold
-    all_true_labels = []
-    all_predictions = []
+    all_true_labels = np.empty_like(y)
+    all_predictions = np.empty_like(y)
     # Initialize an array to store accuracy/mse scores for each fold
     scores = []
-    # Create a pipeline for preprocessing and classification
-    pipe = make_pipeline(
-        mne.decoding.Scaler(scalings='mean'), # Scale the data
-        model
-    )
 
     # Cross-validation loop
     for i, (train_index, test_index) in enumerate(gkf.split(X, y, groups)):
+
+        # Copy untrained model (always safer to start fresh with each fold)
+        model_fold = clone(model)
 
         # Split data into training and test sets based on the current fold indices
         X_train, X_test = X[train_index], X[test_index]
@@ -62,33 +76,46 @@ def trainingDL_between(model, X, y, task = 'regression', nfolds=4, n_inner_split
 
         # New groups from training data for split into train and val
         group2 = groups[train_index]
-        # Further split the training set into training and validation sets
-        gkf2 = GroupKFold(n_splits=n_inner_splits)
-        # Further split the training set into training and validation sets
-        for train_idx, val_idx in gkf2.split(X_train, y_train, groups=group2):
-            X_train, X_val = X[train_idx], X[val_idx]
-            y_train, y_val = y[train_idx], y[val_idx]
 
-        # Shuffle within the training set
-        train_shuffle_indices = np.random.permutation(len(y_train))
-        X_train, y_train = X_train[train_shuffle_indices], y_train[train_shuffle_indices]
-        
+        all_true_labels[test_index] = y_test
+
+        # Further split the training set into training and validation sets
+        splitter = GroupShuffleSplit(test_size=0.2, n_splits=2, random_state=42)
+        split = splitter.split(X_train, groups=group2)
+        train_inds, valid_inds = next(split)
+
+        X_train, X_val = X_train[train_inds], X_train[valid_inds]
+        y_train, y_val = y_train[train_inds], y_train[valid_inds]
+
+        # Check it all makes sense
+        assert (len(X_train) + len(X_val) + len(X_test)) == len(y)
+
+        if task == "regression":
+            # Unsqueeze to get same shape as output
+            y_val = y_val.unsqueeze(1)
+            y_train = y_train.unsqueeze(1)
+
+        # Update the model to feed it the validation set during training
+        model_fold.set_params(**{'train_split': predefined_split(Dataset(X_val, y_val))})
+
         # Fit the model on the training data
-        pipe.fit(X_train, y_train)
+        model_fold.fit(X_train, y_train)
         # Predict on the test set
-        y_pred = pipe.predict(X_val)
+        y_pred = model_fold.predict(X_test).squeeze()
+
+        all_predictions[test_index] = y_pred
 
         if task == 'regression':
-            mse = mean_squared_error(y_val, y_pred)
+            mse = mean_squared_error(y_test, y_pred)
             scores.append(mse)
             print("Mean Squared Error in fold", i+1, ":", mse)
             writer.add_scalar('Train Loss/MSE', mse, i+1) 
             # Calculate R-squared score
-            r2 = r2_score(y_val, y_pred)
+            r2 = r2_score(y_test, y_pred)
             writer.add_scalar('Train R-squared', r2, i+1)
 
         if task == 'classification':
-            accuracy = accuracy_score(y_val, y_pred)
+            accuracy = accuracy_score(y_test, y_pred)
             scores.append(accuracy)
             print("Accuracy in fold", i+1, ":", accuracy)
             writer.add_scalar('Train Accuracy', accuracy, i+1)
@@ -98,35 +125,26 @@ def trainingDL_between(model, X, y, task = 'regression', nfolds=4, n_inner_split
     print("Mean Mean Squared Error(regression) or accuracy(classification) over all folds: {:.2f}".format(mean_score))
 
     # Test the model on completely new data
-    score_test = []
-    y_pred_test = pipe.predict(X_test)
 
     if task == 'regression':
-        score_test = mean_squared_error(y_test, y_pred_test)
-        print("Mean Squared Error on Test Set:", score_test)
-        # Convert the list of tensors to a numpy array of floats
-        y_test = np.array([tensor.item() for tensor in y_test])
-        # Concatenate the NumPy arrays in the predictions list
-        y_pred_test = [prediction[0].item() for prediction in y_pred_test]
-        writer.add_scalar('Test Loss/MSE', score_test)
-        r2 = r2_score(y_test, y_pred_test)
-        writer.add_scalar('Test R-squared', r2)
+        mse_test = mean_squared_error(all_true_labels, all_predictions)
+        r2_test = r2_score(y_test, y_pred_test)
+
+        print("Mean Squared Error total:", score_test)
+        writer.add_scalar('Test Loss/MSE', mse_test)
+        writer.add_scalar('Test R-squared', r2_test)
 
     if task == 'classification':
-        score_test = accuracy_score(y_test, y_pred_test)
+        score_test = accuracy_score(all_true_labels, all_predictions)
         print("Accuracy on Test Set:", score_test)
         # Convert y_test to integer type
         #y_test = y_test.astype(int)  # Ensure integer type
         # Convert the predicted integer indices to original class names
-        y_test = label_encoder.inverse_transform(y_test)
-        y_pred_test = label_encoder.inverse_transform(y_pred_test)
+        y_test = label_encoder.inverse_transform(all_true_labels)
+        y_pred_test = label_encoder.inverse_transform(all_predictions)
         writer.add_scalar('Test Accuracy', score_test)
 
-    # Append the true class names to the lis
-    all_true_labels.extend(y_test)
-    # Append the predicted label strings to the list
-    all_predictions.extend(y_pred_test)
-    
+
     # Output the first 10 elements of true labels and predictions
     print("True Labels (First 10 elements):", all_true_labels[:10])
     print("Predictions (First 10 elements):", all_predictions[:10])
@@ -135,7 +153,7 @@ def trainingDL_between(model, X, y, task = 'regression', nfolds=4, n_inner_split
     return mean_score, all_true_labels, all_predictions, score_test
 
 
-def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfolds=4, n_inner_splits = 5, groups=None, writer=None):
+def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfolds=4, n_inner_splits=5, groups=None, writer=None):
     """
     Perform nested cross-validation for training and evaluating a machine learning model.
 
@@ -149,7 +167,7 @@ def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfo
     - groups (numpy.ndarray, optional): Group labels for grouping samples in cross-validation. Default is None.
 
     Returns:
-    - mean_score (float): Mean mean squared error (for regression) or accuracy (for classification) across outer folds.
+    - mean_score (float): Mean mean squared err/or (for regression) or accuracy (for classification) across outer folds.
     - all_true_labels (list): List of true class labels or values across all outer validation folds.
     - all_predictions (list): List of predicted class labels or values across all outer validation folds.
     - score_test (list): List of mean squared error (for regression) or accuracy (for classification) on the test set for each outer fold.
@@ -161,7 +179,7 @@ def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfo
 
     # Store scores from outer loop
     score_test = [] 
-    
+
     # Initialize dictionaries to store best parameters and their occurrences
     best_params_counts = Counter()
     best_params_per_fold = {}
