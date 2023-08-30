@@ -27,8 +27,8 @@ import csv
 import os
 
 # Set kind of Cross validation and task to perform 
-part = 'between' # 'between' or 'within' participant
-task = 'regression' # 'classification' or 'regression'
+part = 'within' # 'between' or 'within' participant
+task = 'classification' # 'classification' or 'regression'
 dl = False # Whether to use a deep learning or standard ML model
 
 #____________________________________________________________________________
@@ -158,8 +158,8 @@ deep4net = Deep4Net(
 #model = svm.SVC()
 #model_name = "SVC"
 
-#model = RandomForestClassifier()
-#model_name = "RFClassifier"
+model = RandomForestClassifier()
+model_name = "RFClassifier"
 
 #____________________________________________________________________
 # Create EEGRegressors
@@ -225,8 +225,8 @@ if cuda:
 #model = linear_model.ElasticNet()
 #model_name = "ElasticNet"
 
-model = linear_model.SGDRegressor()
-model_name = "SGD"
+#model = linear_model.SGDRegressor()
+#model_name = "SGD"
 
 #__________________________________________________________________
 # Training
