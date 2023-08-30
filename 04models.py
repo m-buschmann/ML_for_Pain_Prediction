@@ -28,8 +28,8 @@ import os
 
 # Set kind of Cross validation and task to perform 
 part = 'within' # 'between' or 'within' participant
-task = 'classification' # 'classification' or 'regression'
-dl = False # Whether to use a deep learning or standard ML model
+task = 'regression' # 'classification' or 'regression'
+dl = True # Whether to use a deep learning or standard ML model
 
 #____________________________________________________________________________
 # Application of cross validation for different models
@@ -60,9 +60,13 @@ elif "mplab" in current_directory:
     bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/epochs_clean_3/cleaned_epo.fif'
     #bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
     log_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/logs'
+    cuda = False
+    device = torch.device('cpu')
 else:
     bidsroot = '/home/mathilda/MITACS/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
     log_dir='/home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/logs'
+    cuda = False
+    device = torch.device('cpu')
 
 data_path = opj(bidsroot)
 # Load epochs oject
@@ -158,8 +162,8 @@ deep4net = Deep4Net(
 #model = svm.SVC()
 #model_name = "SVC"
 
-model = RandomForestClassifier()
-model_name = "RFClassifier"
+#model = RandomForestClassifier()
+#model_name = "RFClassifier"
 
 #____________________________________________________________________
 # Create EEGRegressors
@@ -181,7 +185,7 @@ if cuda:
     shallow_fbcsp_net.cuda()"""
     
 # Create an instance of Deep4Net
-"""deep4net = Deep4Net(
+deep4net = Deep4Net(
     in_chans=len(epochs.info['ch_names']),
     n_classes=n_classes_reg,
     input_window_samples=X.shape[2],
@@ -190,8 +194,15 @@ if cuda:
 model_name = "deep4netRegression"
 if cuda:
     deep4net.cuda()
-"""
-"""model = EEGRegressor(
+
+new_model = torch.nn.Sequential()
+for name, module_ in deep4net.named_children():
+    if "softmax" in name:
+        continue
+    new_model.add_module(name, module_)
+deep4net = new_model
+
+model = EEGRegressor(
     module=deep4net,
     criterion=MSELoss(),
     #cropped=True,
@@ -210,8 +221,6 @@ if cuda:
     device=device,
 )
 
-"""
-#model_name = "deep4netRegression"
 
 #model = svm.SVR()
 #model_name = "SVR"
