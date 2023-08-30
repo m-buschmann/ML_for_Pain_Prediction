@@ -54,6 +54,8 @@ cuda = "lustre" in current_directory
 if cuda:
     model_name = sys.argv[1]
     part = sys.argv[2]
+    optimizer_lr = sys.argv[3]
+    bsize = sys.argv[4]
     if torch.cuda.is_available():
         device = torch.device('cuda')  # PyTorch will use the default GPU
         torch.backends.cudnn.benchmark = True
@@ -68,6 +70,8 @@ if cuda:
 elif "mplab" in current_directory:
     model_name = "SGD" #set the model to use. also determines dl and kind of task
     part = 'between' # 'between' or 'within' participant
+    optimizer_lr = 0.000625
+    bsize = 16
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
     #bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/cleaned_epo.fif'
     bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
@@ -75,6 +79,8 @@ elif "mplab" in current_directory:
 else:
     model_name = "shallowFBCSPNetRegression" #set the model to use. also determines dl and kind of task
     part = 'between'# 'between' or 'within' participant
+    optimizer_lr = 0.000625
+    bsize = 16
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
     bidsroot = '/home/mathilda/MITACS/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
     log_dir='/home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/logs'
@@ -117,7 +123,7 @@ groups = epochs.metadata["participant_id"].values
 n_chans = len(epochs.info['ch_names'])
 input_window_samples=X.shape[2]
 n_classes_clas=5
-bsize = 16
+#bsize = 16
 
 
 # Define a balanced accuracy
@@ -130,8 +136,7 @@ def balanced_accuracy(model, X, y=None):
 #____________________________________________________________________
 # Create EEGRegressors
 
-#batchsize 8 -16
-optimizer_lr = 0.000625
+#optimizer_lr = 0.000625
 optimizer_weight_decay = 0
 n_classes_reg=1
 
@@ -428,4 +433,4 @@ if task == 'classification':
     plt.savefig(output_file)
 
 # Run this in Terminal to see tensorboard
-#tensorboard --logdir /home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/logs/deep4netRegression/between --port 6007
+#tensorboard --logdir /home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/logs/deep4netClassification/between --port 6007
