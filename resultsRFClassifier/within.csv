@@ -1,0 +1,6 @@
+Mean Score,Test Score,Best Parameters,True Label,Predicted Label
+0.3844225949489107
+"[0.2781954887218045, 0.46153846153846156, 0.41353383458646614]"
+"{'randomforestclassifier__bootstrap': False, 'randomforestclassifier__max_depth': 20, 'randomforestclassifier__min_samples_leaf': 2, 'randomforestclassifier__min_samples_split': 10, 'randomforestclassifier__n_estimators': 200, 'randomforestclassifier__n_jobs': -1}"
+['thermalrate' None 'thermalrate' ... None 'rest' None]
+['auditory' None 'auditoryrate' ... None 'thermal' None]

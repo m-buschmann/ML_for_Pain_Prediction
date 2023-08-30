@@ -54,8 +54,8 @@ cuda = "lustre" in current_directory
 if cuda:
     model_name = sys.argv[1]
     part = sys.argv[2]
-    optimizer_lr = sys.argv[3]
-    bsize = sys.argv[4]
+    optimizer_lr = int(sys.argv[3]) 
+    bsize = int(sys.argv[4])  # Convert batch size to an integer
     if torch.cuda.is_available():
         device = torch.device('cuda')  # PyTorch will use the default GPU
         torch.backends.cudnn.benchmark = True
