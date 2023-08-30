@@ -128,7 +128,7 @@ def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfol
     """
     # Initialize arrays to store true labels and predictions for each fold
     all_true_labels = np.empty_like(y)
-    all_predictions = np.empty_like(y)   
+    all_predictions = np.empty_like(y)     
 
     # Store scores from outer loop
     score_test = [] 

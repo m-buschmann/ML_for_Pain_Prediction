@@ -1,6 +1,6 @@
 Mean Score,Test Score,Best Parameters,True Label,Predicted Label
-0.3844225949489107
-"[0.2781954887218045, 0.46153846153846156, 0.41353383458646614]"
-"{'randomforestclassifier__bootstrap': False, 'randomforestclassifier__max_depth': 20, 'randomforestclassifier__min_samples_leaf': 2, 'randomforestclassifier__min_samples_split': 10, 'randomforestclassifier__n_estimators': 200, 'randomforestclassifier__n_jobs': -1}"
-['thermalrate' None 'thermalrate' ... None 'rest' None]
-['auditory' None 'auditoryrate' ... None 'thermal' None]
+0.36606901870059766
+"[0.3082706766917293, 0.35384615384615387, 0.43609022556390975]"
+"{'randomforestclassifier__bootstrap': False, 'randomforestclassifier__max_depth': None, 'randomforestclassifier__min_samples_leaf': 1, 'randomforestclassifier__min_samples_split': 5, 'randomforestclassifier__n_estimators': 200, 'randomforestclassifier__n_jobs': -1}"
+['thermalrate' 'thermalrate' None ... None None None]
+['thermalrate' 'auditoryrate' None ... None None None]
