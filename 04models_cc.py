@@ -10,9 +10,6 @@ from os.path import join as opj
 import torch
 from sklearn import datasets, linear_model, svm
 from sklearn.linear_model import LogisticRegression, LinearRegression
-from sklearn.model_selection import train_test_split, GroupKFold, KFold, GridSearchCV
-from sklearn.metrics import balanced_accuracy_score
-from collections import Counter
 from braindecode.models import ShallowFBCSPNet,Deep4Net, EEGNetv4
 from braindecode import EEGClassifier, EEGRegressor
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
@@ -20,19 +17,20 @@ from skorch.callbacks import Checkpoint, EarlyStopping, LRScheduler, ProgressBar
 from train_script_between_part import trainingDL_between, training_nested_cv_between
 from train_script_within_part import training_nested_cv_within, trainingDL_within
 import torch.nn as nn
-from braindecode.models.util import to_dense_prediction_model, get_output_shape
-from braindecode.training.losses import CroppedLoss
-from torch.nn import MSELoss
+
+from sklearn.pipeline import make_pipeline
 from tensorboardX import SummaryWriter
 from sklearn.metrics import confusion_matrix
-import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
+from tqdm import tqdm
 import csv
 import os
 from sklearn.linear_model import ElasticNet
 import sys
-
+from braindecode.preprocessing import exponential_moving_standardize
+from pyriemann.classification import MDM, TSclassifier
+from pyriemann.estimation import Covariances, Shrinkage
 # Set kind of Cross validation and task to perform 
 #part = 'between' # 'between' or 'within' participant
 #task = 'classification' # 'classification' or 'regression'
@@ -64,6 +62,13 @@ if cuda:
     bidsroot = '/lustre04/scratch/mabus103/epoched_data/cleaned_epo.fif'
     log_dir=f'/lustre04/scratch/mabus103/logs'
     #log_dir=f'/lustre04/scratch/mabus103/ML_for_Pain_Prediction/logs'
+elif 'media/mp' in current_directory: #MP's local machine
+    model_name = "shallowFBCSPNetClassification"
+    part = "between"
+    target = "3_classes"
+    device = torch.device('cuda')
+    bidsroot = 'data/cleaned_epo.fif'
+    log_dir= 'logs'
 
 elif "mplab" in current_directory:
     model_name = "SGD" #set the model to use. also determines dl and kind of task
@@ -82,11 +87,10 @@ else:
 data_path = opj(bidsroot)
 # Load epochs oject
 epochs = mne.read_epochs(data_path, preload=True)
-# Exclude eog and misc channels
-epochs = epochs.pick_types(eeg=True) 
+
 
 #remove epochs above threshold
-threshold = 20 
+threshold = 20
 
 # Get the metadata DataFrame from the Epochs object
 metadata_df = epochs.metadata
@@ -101,11 +105,15 @@ epochs = epochs[selected_indices]
 print("Number of epochs before removal:", len(metadata_df))
 print("Number of epochs after removal:", len(epochs))
 
-# Set target and label data
-X = epochs.get_data()
 
-# Rescale X to a bigger number
-X = X * 10e6
+# Preprocess the data
+# epochs.filter(4, 80)
+X = epochs.get_data()
+X = X*1e6 # Convert from V to uV
+# TODO check if this makes sense for non-deep models. Probably not?
+for epo in tqdm(range(X.shape[0]), desc='Normalizing data'): # Loop epochs
+    X[epo, :, :] = exponential_moving_standardize(X[epo, :, :], factor_new=0.001, init_block_size=None) # Normalize the data
+
 
 # Define the groups (participants) to avoid splitting them across train and test
 groups = epochs.metadata["participant_id"].values
@@ -116,24 +124,9 @@ groups = epochs.metadata["participant_id"].values
 
 n_chans = len(epochs.info['ch_names'])
 input_window_samples=X.shape[2]
-n_classes_clas=5
+n_classes_clas=int(target[0])
 bsize = 16
 
-
-# Define a balanced accuracy
-def balanced_accuracy(model, X, y=None):
-    # assume ds yields (X, y), e.g. torchvision.datasets.MNIST
-    y_true = [y for _, y in X]
-    y_pred = model.predict(X)
-    return balanced_accuracy_score(y_true, y_pred)
-
-#____________________________________________________________________
-# Create EEGRegressors
-
-#batchsize 8 -16
-optimizer_lr = 0.000625
-optimizer_weight_decay = 0
-n_classes_reg=1
 
 #__________________________________________________________________
 # Training
@@ -225,29 +218,50 @@ elif model_name == "SGD":
     task = 'regression'
     dl = False
 
+elif model_name == 'covariance_MDM':
+    #TODO add parameters for gridsearch
+    model = make_pipeline(
+                Covariances(),
+                Shrinkage(),
+                MDM(metric=dict(mean="riemann", distance="riemann")),
+            )
+    task = 'classification'
+    dl = False
+
 elif model_name == "deep4netClassification":
     # Create an instance of Deep4Net
     deep4net_classification = Deep4Net(
         in_chans=len(epochs.info['ch_names']),
-        n_classes=n_classes_clas,
-        input_window_samples=X.shape[2],
-        final_conv_length='auto',
-    )
-    if cuda:
-        deep4net_classification.cuda()
+        n_classes=n_classes_clas)
 
     model = EEGClassifier(
         module=deep4net_classification,
+        criterion=torch.nn.NLLLoss,
+        train_split=None, # None here, update intraining function
         callbacks = [
-            Checkpoint,
-            EarlyStopping,
-            LRScheduler,
-            ProgressBar,
-            EpochScoring(scoring=balanced_accuracy, lower_is_better=False),
+            "balanced_accuracy",
+            "accuracy",
+            ("checkpoint", Checkpoint(
+                            f_criterion=None,
+                            f_optimizer=None,
+                            f_history=None,
+                            load_best=True,
+                        )),
+
+            # ("lr_scheduler", LRScheduler(policy="ReduceLROnPlateau",
+            #                              monitor="valid_loss",
+            #                              patience=3)), # Another option
+            ("lr_scheduler",  LRScheduler("CosineAnnealingLR", T_max=50 - 1)),
+            ("early_stopping", EarlyStopping(patience=10)),
+
         ],
-        optimizer=torch.optim.Adam,
+        optimizer=torch.optim.AdamW,
+        optimizer__lr = 0.0001,
+        optimizer__weight_decay = 0.5 * 0.001, # As recommended on braindecode.org
         batch_size = bsize,
-        max_epochs=20,
+        max_epochs=50,
+        iterator_valid__shuffle=False,
+        iterator_train__shuffle=True,
         device=device,
     )
     task = 'classification'
@@ -257,29 +271,55 @@ elif model_name == "deep4netRegression":
     # Create an instance of Deep4Net
     deep4net_regression = Deep4Net(
         in_chans=len(epochs.info['ch_names']),
-        n_classes=n_classes_reg,
+        n_classes=1,
         input_window_samples=X.shape[2],
         final_conv_length='auto',
     )
+
+    # Remove the softmax layer
+    new_model = torch.nn.Sequential()
+    for name, module_ in deep4net_regression.named_children():
+        if "softmax" in name:
+            continue
+        new_model.add_module(name, module_)
+    deep4net_regression = new_model
+
     if cuda:
         deep4net_regression.cuda()
 
     model = EEGRegressor(
         module=deep4net_regression,
-        criterion=MSELoss(),
+        criterion=nn.MSELoss,
+        train_split=None, # None here, update intraining function
+
         #cropped=True,
         #criterion=CroppedLoss,
         #criterion__loss_function=torch.nn.functional.mse_loss,
-        callbacks = [
-            'neg_root_mean_squared_error',
-            Checkpoint(load_best=True),
-            EarlyStopping,
-            LRScheduler,
-            ProgressBar,
+                callbacks = [
+            "neg_root_mean_squared_error",
+            "neg_mean_absolute_error",
+            "r2",
+            ("checkpoint", Checkpoint(
+                            f_criterion=None,
+                            f_optimizer=None,
+                            f_history=None,
+                            load_best=True,
+                        )),
+
+            # ("lr_scheduler", LRScheduler(policy="ReduceLROnPlateau",
+            #                              monitor="valid_loss",
+            #                              patience=3)), # Another option
+            ("lr_scheduler",  LRScheduler("CosineAnnealingLR", T_max=50 - 1)),
+            ("early_stopping", EarlyStopping(patience=10)),
+
         ],
-        optimizer=torch.optim.Adam,
+        optimizer=torch.optim.AdamW,
+        optimizer__lr = 0.00001,
+        optimizer__weight_decay = 0, # As recommended on braindecode.org
         batch_size = bsize,
-        max_epochs=20,
+        max_epochs=50,
+        iterator_valid__shuffle=False,
+        iterator_train__shuffle=True,
         device=device,
     )
     task = 'regression'
@@ -293,53 +333,98 @@ elif model_name == "shallowFBCSPNetClassification":
         input_window_samples=X.shape[2],
         final_conv_length='auto',
     )
+
     if cuda:
         shallow_fbcsp_net_classification.cuda()
 
+
     model = EEGClassifier(
         module=shallow_fbcsp_net_classification,
+        criterion=torch.nn.NLLLoss,
+        train_split=None, # None here, update intraining function
         callbacks = [
-            Checkpoint,
-            EarlyStopping,
-            LRScheduler,
-            ProgressBar,
-            EpochScoring(scoring=balanced_accuracy, lower_is_better=False),
+            "balanced_accuracy",
+
+            ("checkpoint", Checkpoint(
+                            f_criterion=None,
+                            f_optimizer=None,
+                            f_history=None,
+                            load_best=True,
+                        )),
+
+            # ("lr_scheduler", LRScheduler(policy="ReduceLROnPlateau",
+            #                              monitor="valid_loss",
+            #                              patience=3)), # Another option
+            ("lr_scheduler",  LRScheduler("CosineAnnealingLR", T_max=50 - 1)),
+            ("early_stopping", EarlyStopping(patience=10)),
+
         ],
-        optimizer=torch.optim.Adam,
+        optimizer=torch.optim.AdamW,
+        optimizer__lr = 0.00001,
+        optimizer__weight_decay = 0, # As recommended on braindecode.org
         batch_size = bsize,
-        max_epochs=20,
+        max_epochs=50,
+        iterator_valid__shuffle=False,
+        iterator_train__shuffle=True,
         device=device,
     )
     task = 'classification'
     dl = True
 
+
 elif model_name == "shallowFBCSPNetRegression":
     # Create an instance of ShallowFBCSPNet
     shallow_fbcsp_net_regression = ShallowFBCSPNet(
         in_chans=len(epochs.info['ch_names']),
-        n_classes=n_classes_reg,
+        n_classes=1,
         input_window_samples=X.shape[2],
         final_conv_length='auto',
     )
+
+    # Remove the softmax layer
+    new_model = torch.nn.Sequential()
+    for name, module_ in shallow_fbcsp_net_regression.named_children():
+        if "softmax" in name:
+            continue
+        new_model.add_module(name, module_)
+    shallow_fbcsp_net_regression = new_model
+
     if cuda:
         shallow_fbcsp_net_regression.cuda()
 
+
     model = EEGRegressor(
         module=shallow_fbcsp_net_regression,
-        criterion=MSELoss(),
+        criterion=nn.MSELoss,
+        train_split=None, # None here, update intraining function
         #cropped=True,
         #criterion=CroppedLoss,
         #criterion__loss_function=torch.nn.functional.mse_loss,
-        callbacks = [
-            'neg_root_mean_squared_error',
-            Checkpoint(load_best=True),
-            EarlyStopping,
-            LRScheduler,
-            ProgressBar,
+                callbacks = [
+            "neg_root_mean_squared_error",
+            "r2",
+            "neg_mean_absolute_error",
+            ("checkpoint", Checkpoint(
+                            f_criterion=None,
+                            f_optimizer=None,
+                            f_history=None,
+                            load_best=True,
+                        )),
+
+            # ("lr_scheduler", LRScheduler(policy="ReduceLROnPlateau",
+            #                              monitor="valid_loss",
+            #                              patience=3)), # Another option
+            ("lr_scheduler",  LRScheduler("CosineAnnealingLR", T_max=50 - 1)),
+            ("early_stopping", EarlyStopping(patience=10)),
+
         ],
-        optimizer=torch.optim.Adam,
+        optimizer=torch.optim.AdamW,
+        optimizer__lr = 0.001,
+        optimizer__weight_decay = 0, # As recommended on braindecode.org
         batch_size = bsize,
-        max_epochs=20,
+        max_epochs=50,
+        iterator_valid__shuffle=False,
+        iterator_train__shuffle=True,
         device=device,
     )
     task = 'regression'
@@ -347,10 +432,19 @@ elif model_name == "shallowFBCSPNetRegression":
 
 print(model_name, part)
 
+
+
 if task == 'classification':
-    y = epochs.metadata["task"].values  
+    epochs.metadata['task'].astype(str)
+    if target == '3_classes':
+        y = [i.replace('rate', '') for i in epochs.metadata["task"].values]
+    elif target == '5_classes':
+        y = epochs.metadata["task"].values
 elif task == 'regression':
-    y = epochs.metadata["rating"].values #maybe also intensity
+    if target == 'rating':
+        y = epochs.metadata["rating"].values 
+    elif target == 'intensity':
+        y = epochs.metadata["intensity"].values 
 
 
 # Get writer for tensorboard
@@ -358,13 +452,13 @@ writer = SummaryWriter(log_dir=opj(log_dir, model_name, part))
 
 # Train the EEG model using cross-validation
 if dl == False and part == 'within':
-    mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_within(model, X, y, parameters, task=task, nfolds=4, n_inner_splits=5, groups=groups, writer=writer)
+    mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_within(model, X, y, parameters, task=task, nfolds=10, n_inner_splits=5, groups=groups, writer=writer)
 if dl == False and part == 'between':
-    mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_between(model, X, y, parameters = parameters, task =task, nfolds=3, n_inner_splits=2, groups=groups, writer=writer)
+    mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_between(model, X, y, parameters = parameters, task =task, nfolds=10, n_inner_splits=2, groups=groups, writer=writer)
 if dl == True and part == 'within':
-    mean_score, all_true_labels, all_predictions, score_test = trainingDL_within(model, X, y, task=task, groups=groups, writer=writer)
+    mean_score, all_true_labels, all_predictions, participants_scores = trainingDL_within(model, X, y, task=task, groups=groups, writer=writer, nfolds=10)
 if dl == True and part == 'between':
-    mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task=task, nfolds=4, n_inner_splits = 5, groups=groups, writer=writer)
+    mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task=task, nfolds=10, groups=groups, writer=writer)
 
 # Close the SummaryWriter when done
 writer.close()
