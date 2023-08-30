@@ -28,8 +28,8 @@ import os
 
 # Set kind of Cross validation and task to perform 
 part = 'within' # 'between' or 'within' participant
-task = 'regression' # 'classification' or 'regression'
-dl = True # Whether to use a deep learning or standard ML model
+task = 'classification' # 'classification' or 'regression'
+dl = False # Whether to use a deep learning or standard ML model
 
 #____________________________________________________________________________
 # Application of cross validation for different models
@@ -63,7 +63,7 @@ elif "mplab" in current_directory:
     cuda = False
     device = torch.device('cpu')
 else:
-    bidsroot = '/home/mathilda/MITACS/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
+    bidsroot = '/home/mathilda/MITACS/Project/eeg_pain_v2/derivatives/cleaned epochs2/sub-003_cleaned_epo.fif'
     log_dir='/home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/logs'
     cuda = False
     device = torch.device('cpu')
@@ -162,8 +162,8 @@ deep4net = Deep4Net(
 #model = svm.SVC()
 #model_name = "SVC"
 
-#model = RandomForestClassifier()
-#model_name = "RFClassifier"
+model = RandomForestClassifier()
+model_name = "RFClassifier"
 
 #____________________________________________________________________
 # Create EEGRegressors
@@ -185,7 +185,7 @@ if cuda:
     shallow_fbcsp_net.cuda()"""
     
 # Create an instance of Deep4Net
-deep4net = Deep4Net(
+"""deep4net = Deep4Net(
     in_chans=len(epochs.info['ch_names']),
     n_classes=n_classes_reg,
     input_window_samples=X.shape[2],
@@ -220,7 +220,7 @@ model = EEGRegressor(
     max_epochs=20,
     device=device,
 )
-
+"""
 
 #model = svm.SVR()
 #model_name = "SVR"

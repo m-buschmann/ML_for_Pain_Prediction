@@ -159,6 +159,96 @@ def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfol
         # Split participant data into training and testing using train_test_split
         train_idx, test_idx = train_test_split(participant_indices, test_size=1/nfolds)
         
+        print(train_idx[:20], test_idx[:20])
+        outer = KFold(nfolds)
+        for fold, (train_idx_outer, test_idx_outer) in enumerate(outer.split(participant_indices)):
+            train_idx_outer = participant_indices[train_idx_outer]
+            test_idx_outer = participant_indices[test_idx_outer]
+            
+            X_train_outer, X_test_outer = X[train_idx_outer], X[test_idx_outer]
+            y_train_outer, y_test_outer = y[train_idx_outer], y[test_idx_outer]
+            inner_group = groups[train_idx_outer]
+
+            # inner cross-validation
+            clf = GridSearchCV(full_pipe, parameters, cv=KFold(n_inner_splits).split(X_train_outer, y_train_outer, inner_group),
+                            refit=True)
+            clf.fit(X_train_outer, y_train_outer) # Fit the model on the training data
+
+            # Store best parameters for each fold
+            best_params_fold = clf.best_params_
+            #best_params_per_fold[fold] = best_params_fold #do we even need this?
+            best_params_counts.update([str(best_params_fold)]) 
+            
+            y_pred_test = clf.predict(X_test_outer)
+
+            # Store lists of true values and predictions 
+            all_true_labels[test_idx_outer] = y_test_outer#probably dont nee
+            all_predictions[test_idx_outer] = y_pred_test #added again?
+
+            # MSEs or accuracies from outer loop
+            if task == 'regression':
+                score_test.append(mean_squared_error(y_test_outer, y_pred_test))
+                print("Mean Squared Error on Test Set:", score_test[fold], "in outer fold", fold+1)
+                writer.add_scalar('Test Loss/MSE', score_test[fold], fold+1) 
+
+            if task == 'classification':
+                score_test.append(accuracy_score(y_test_outer, y_pred_test))
+                print("Accuracy on Test Set:", score_test[fold], "in outer fold", fold+1)
+                writer.add_scalar('Test Accuracy', score_test[fold], fold+1) 
+        outer_train_iteration+=1
+
+    # Calculate the score across all folds in the outer loop
+    mean_score = np.mean(score_test)
+    print("Mean Mean Squared Error(regression) or accuracy(classification) in total: {:.2f}".format(mean_score))
+
+    # Calculate the most common best parameter
+    most_common_best_param = best_params_counts.most_common(1)[0][0]
+
+    print("Most common best parameter:", most_common_best_param)
+
+    # Output the first 10 elements of true labels and predictions
+    print("True Labels (First 10 elements):", all_true_labels[:10])
+    print("Predictions (First 10 elements):", all_predictions[:10])
+    writer.close()
+    return mean_score, all_true_labels, all_predictions, score_test, most_common_best_param
+
+
+
+"""def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfolds=4, n_inner_splits = 5, groups=None, writer=None):
+
+    # Initialize arrays to store true labels and predictions for each fold
+    all_true_labels = np.empty_like(y)
+    all_predictions = np.empty_like(y)     
+
+    # Store scores from outer loop
+    score_test = [] 
+    
+    # Initialize dictionaries to store best parameters and their occurrences
+    best_params_counts = Counter()
+    best_params_per_fold = {}
+
+    # Create a pipeline for preprocessing
+    full_pipe = make_pipeline(
+        mne.decoding.Scaler(scalings='mean'), # Scale the data
+        mne.decoding.Vectorizer(), # Vectorize the data
+        model # Add the ML model
+    )
+
+    # Outer cross-validation
+    # Initialize GroupKFold with the desired number of folds
+        # Get unique participant IDs
+    unique_participants = np.unique(groups)
+    outer_train_iteration = 0
+
+    # Loop over each participant
+    for participant in unique_participants:
+        print(participant)
+        # Get the data indices for the current participant
+        participant_indices = np.where(groups == participant)[0]
+
+        # Split participant data into training and testing using train_test_split
+        train_idx, test_idx = train_test_split(participant_indices, test_size=1/nfolds)
+        print(train_idx[:20], test_idx[:20])
         X_train_outer, X_test_outer = X[train_idx], X[test_idx]
         y_train_outer, y_test_outer = y[train_idx], y[test_idx]
 
@@ -212,3 +302,4 @@ def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfol
     print("Predictions (First 10 elements):", all_predictions[:10])
     writer.close()
     return mean_score, all_true_labels, all_predictions, score_test, most_common_best_param
+"""
