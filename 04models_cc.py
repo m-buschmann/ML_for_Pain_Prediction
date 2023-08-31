@@ -516,25 +516,27 @@ elif dl == False:
 
 # For classification, build a confusion matrix
 if task == 'classification':
-    target_names = ["thermalrate", "auditoryrate", "thermal", "auditory", "rest"]
 
     # Convert the lists to numpy arrays
     all_true_labels = np.array(all_true_labels)
     all_predictions = np.array(all_predictions)
 
-    # Compute the confusion matrix
-    cm = confusion_matrix(all_true_labels, all_predictions)
-    cm_normalized = cm.astype(float) / cm.sum(axis=1)[:, np.newaxis]
+    # Get the unique class labels
+    unique_labels = np.unique(np.concatenate((all_true_labels, all_predictions)))
 
+    # Compute the confusion matrix with specified labels
+    cm = confusion_matrix(all_true_labels, all_predictions, labels=unique_labels)
+    cm_normalized = cm.astype(float) / cm.sum(axis=1)[:, np.newaxis]
+    
     # Plot confusion matrix
     fig, ax = plt.subplots(1)
     im = ax.imshow(cm_normalized, interpolation="nearest", cmap=plt.cm.Blues)
     ax.set(title="Normalized Confusion matrix")
     fig.colorbar(im)
-    tick_marks = np.arange(len(target_names))
-    plt.xticks(tick_marks, target_names, rotation=45)
-    plt.yticks(tick_marks, target_names)
-    fig.tight_layout()
+    tick_marks = np.arange(len(unique_labels))
+    plt.xticks(tick_marks, unique_labels, rotation=45)
+    plt.yticks(tick_marks, unique_labels)
+    fig.tight_layout(pad=1.5)
     ax.set(ylabel="True label", xlabel="Predicted label")
 
     # Save the confusion matrix plot as an image file
