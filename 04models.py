@@ -425,7 +425,7 @@ elif model_name == "shallowFBCSPNetRegression":
         #cropped=True,
         #criterion=CroppedLoss,
         #criterion__loss_function=torch.nn.functional.mse_loss,
-                callbacks = [
+        callbacks = [
             "neg_root_mean_squared_error",
             "r2",
             "neg_mean_absolute_error",
@@ -524,8 +524,11 @@ elif dl == False:
 
 # For classification, build a confusion matrix
 if task == 'classification':
-    target_names = ["thermalrate", "auditoryrate", "thermal", "auditory", "rest"]
-
+    if target == '5_classes':
+        target_names = ["thermalrate", "auditoryrate", "thermal", "auditory", "rest"]
+    else:
+        target_names = ["thermal", "auditory", "rest"]
+        
     # Convert the lists to numpy arrays
     all_true_labels = np.array(all_true_labels)
     all_predictions = np.array(all_predictions)

@@ -236,8 +236,13 @@ elif model_name == 'covariance_MDM':
             )
     parameters = {
         'shrinkage__shrinkage': [0.2, 0.5, 0.8],
-        'MDM__metric': [{'mean': 'riemann', 'distance': 'riemann'}, {'mean': 'logeuclid', 'distance': 'riemann'}],
-        'MDM__n_jobs': [-1],
+        'mdm__metric': [
+            {'mean': 'riemann', 'distance': 'riemann'},
+            {'mean': 'riemann', 'distance': 'logeuclid'},
+            {'mean': 'logeuclid', 'distance': 'riemann'},
+            {'mean': 'logeuclid', 'distance': 'logeuclid'},
+        ], # do we want to change this?
+        'mdm__n_jobs': [-1],
     }
     task = 'classification'
     dl = False
