@@ -75,6 +75,7 @@ elif 'media/mp' in current_directory: #MP's local machine
 elif "mplab" in current_directory:
     model_name = "SGD" #set the model to use. also determines dl and kind of task
     part = 'between' # 'between' or 'within' participant
+    target = "3_classes"
     optimizer_lr = 0.000625
     bsize = 16
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
@@ -82,8 +83,9 @@ elif "mplab" in current_directory:
     bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
     log_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/logs'
 else:
-    model_name = "shallowFBCSPNetRegression" #set the model to use. also determines dl and kind of task
+    model_name = "shallowFBCSPNetClassification" #set the model to use. also determines dl and kind of task
     part = 'between'# 'between' or 'within' participant
+    target = "3_classes"
     optimizer_lr = 0.000625
     bsize = 16
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
@@ -126,11 +128,12 @@ groups = epochs.metadata["participant_id"].values
 
 
 #____________________________________________________________________
-# Create models: Classification
+# Classification
 
 n_chans = len(epochs.info['ch_names'])
 input_window_samples=X.shape[2]
-n_classes_clas=int(target[0])
+if target == "3_classes" or "5_classes":
+    n_classes_clas=int(target[0])
 bsize = 16
 
 
