@@ -293,13 +293,6 @@ elif model_name == "deep4netRegression":
     if cuda:
         deep4net_regression.cuda()
 
-    new_model = torch.nn.Sequential()
-    for name, module_ in deep4net_regression.named_children():
-        if "softmax" in name:
-            continue
-        new_model.add_module(name, module_)
-    deep4net_regression = new_model
-
     model = EEGRegressor(
         module=deep4net_regression,
         criterion=nn.MSELoss,
