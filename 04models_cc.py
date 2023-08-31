@@ -138,7 +138,7 @@ bsize = 16
 
 
 #__________________________________________________________________
-# Training
+# Models
 
 # Choose parameters for nested CV
 if model_name == "LogisticRegression":
@@ -234,6 +234,11 @@ elif model_name == 'covariance_MDM':
                 Shrinkage(),
                 MDM(metric=dict(mean="riemann", distance="riemann")),
             )
+    parameters = {
+        'shrinkage__shrinkage': [0.2, 0.5, 0.8],
+        'MDM__metric': [{'mean': 'riemann', 'distance': 'riemann'}, {'mean': 'logeuclid', 'distance': 'riemann'}],
+        'MDM__n_jobs': [-1],
+    }
     task = 'classification'
     dl = False
 
@@ -441,12 +446,15 @@ elif model_name == "shallowFBCSPNetRegression":
 
 print(model_name, part)
 
+#_____________________________________________________________________-
+# Training
 
-
+# Set y
 if task == 'classification':
     epochs.metadata['task'].astype(str)
     if target == '3_classes':
         y = [i.replace('rate', '') for i in epochs.metadata["task"].values]
+        y = np.array(y)
     elif target == '5_classes':
         y = epochs.metadata["task"].values
 elif task == 'regression':

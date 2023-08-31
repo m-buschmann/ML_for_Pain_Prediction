@@ -3,7 +3,7 @@
 import mne
 import numpy as np
 import torch
-from sklearn.pipeline import make_pipeline
+from sklearn.pipeline import make_pipeline, Pipeline
 from sklearn.model_selection import train_test_split, GroupKFold, KFold, GridSearchCV, GroupShuffleSplit
 from sklearn.metrics import accuracy_score, mean_squared_error
 from collections import Counter
@@ -185,14 +185,14 @@ def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfo
     best_params_per_fold = {}
 
     # Create a pipeline for preprocessing
-    #if len(model) > 1:
-    #    full_pipe = model
-    #else:
-    full_pipe = make_pipeline(
-        mne.decoding.Scaler(scalings='mean'), # Scale the data
-        mne.decoding.Vectorizer(), # Vectorize the data
-        model # Add the ML model
-    )
+    if isinstance(model, Pipeline):
+        full_pipe = model
+    else:
+        full_pipe = make_pipeline(
+            mne.decoding.Scaler(scalings='mean'), # Scale the data
+            mne.decoding.Vectorizer(), # Vectorize the data
+            model # Add the ML model
+        )
 
     # Outer cross-validation
     # Initialize GroupKFold with the desired number of folds

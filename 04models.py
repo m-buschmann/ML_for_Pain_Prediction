@@ -83,7 +83,7 @@ elif "mplab" in current_directory:
     bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
     log_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/logs'
 else:
-    model_name = "RFClassifier" #set the model to use. also determines dl and kind of task
+    model_name = "covariance_MDM" #set the model to use. also determines dl and kind of task
     part = 'within'# 'between' or 'within' participant
     target = "3_classes"
     optimizer_lr = 0.000625
@@ -118,9 +118,6 @@ print("Number of epochs after removal:", len(epochs))
 # epochs.filter(4, 80)
 X = epochs.get_data()
 X = X*1e6 # Convert from V to uV
-# TODO check if this makes sense for non-deep models. Probably not?
-for epo in tqdm(range(X.shape[0]), desc='Normalizing data'): # Loop epochs
-    X[epo, :, :] = exponential_moving_standardize(X[epo, :, :], factor_new=0.001, init_block_size=None) # Normalize the data
 
 
 # Define the groups (participants) to avoid splitting them across train and test
@@ -139,6 +136,16 @@ bsize = 16
 
 #__________________________________________________________________
 # Training
+# Define the possible mean and distance metrics
+possible_mean_metrics = ['riemann', 'logeuclid']  # List of possible mean metrics
+possible_distance_metrics = ['riemann', 'logeuclid']  # List of possible distance metrics
+
+# Generate all combinations of mean and distance metrics
+metric_combinations = [
+    {'mean': mean_metric, 'distance': distance_metric}
+    for mean_metric in possible_mean_metrics
+    for distance_metric in possible_distance_metrics
+]
 
 # Choose parameters for nested CV
 if model_name == "LogisticRegression":
@@ -228,12 +235,21 @@ elif model_name == "SGD":
     dl = False
 
 elif model_name == 'covariance_MDM':
-    #TODO add parameters for gridsearch
     model = make_pipeline(
                 Covariances(),
                 Shrinkage(),
                 MDM(metric=dict(mean="riemann", distance="riemann")),
             )
+    parameters = {
+        'shrinkage__shrinkage': [0.2, 0.5, 0.8],
+        'mdm__metric': [
+            {'mean': 'riemann', 'distance': 'riemann'},
+            {'mean': 'riemann', 'distance': 'logeuclid'},
+            {'mean': 'logeuclid', 'distance': 'riemann'},
+            {'mean': 'logeuclid', 'distance': 'logeuclid'},
+        ], # do we want to change this?
+        'mdm__n_jobs': [-1],
+    }
     task = 'classification'
     dl = False
 
@@ -455,6 +471,11 @@ elif task == 'regression':
         y = epochs.metadata["rating"].values 
     elif target == 'intensity':
         y = epochs.metadata["intensity"].values 
+
+# TODO check if this makes sense for non-deep models. Probably not?
+if dl == True:
+    for epo in tqdm(range(X.shape[0]), desc='Normalizing data'): # Loop epochs
+        X[epo, :, :] = exponential_moving_standardize(X[epo, :, :], factor_new=0.001, init_block_size=None) # Normalize the data
 
 # Get writer for tensorboard
 writer = SummaryWriter(log_dir=opj(log_dir, model_name, part))

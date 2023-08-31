@@ -3,7 +3,7 @@
 import mne
 import numpy as np
 import torch
-from sklearn.pipeline import make_pipeline
+from sklearn.pipeline import make_pipeline, Pipeline
 from sklearn.model_selection import KFold, train_test_split, GridSearchCV, StratifiedKFold
 from sklearn.metrics import accuracy_score, mean_squared_error, balanced_accuracy_score
 from collections import Counter
@@ -157,21 +157,20 @@ def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfol
     best_params_per_fold = {}
 
     # Create a pipeline for preprocessing
-    #if len(model) > 1:
-    #    full_pipe = model
+    if isinstance(model, Pipeline):
+        full_pipe = model
 
-    #else:
-    full_pipe = make_pipeline(
-        mne.decoding.Scaler(scalings='mean'), # Scale the data
-        mne.decoding.Vectorizer(), # Vectorize the data
-        model # Add the ML model
-    )
+    else:
+        full_pipe = make_pipeline(
+            mne.decoding.Scaler(scalings='mean'), # Scale the data
+            mne.decoding.Vectorizer(), # Vectorize the data
+            model # Add the ML model
+        )
 
     # Outer cross-validation
     # Initialize GroupKFold with the desired number of folds
         # Get unique participant IDs
     unique_participants = np.unique(groups)
-    outer_train_iteration = 0
     participant_scores = []
     # Loop over each participant
     for participant in unique_participants:
@@ -230,9 +229,9 @@ def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfol
 
 
         # Append the true class names to the list
-        all_true_labels.extend(y_part)
+        all_true_labels[participant_indices] = y_part #probably dont need
         # Append the predicted label strings to the list
-        all_predictions.extend(y_pred)
+        all_predictions[participant_indices] = y_pred 
 
 
         # MSEs or accuracies from outer loop
