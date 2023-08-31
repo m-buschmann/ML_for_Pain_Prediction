@@ -157,15 +157,15 @@ def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfol
     best_params_per_fold = {}
 
     # Create a pipeline for preprocessing
-    if len(model) > 1:
-        full_pipe = model
+    #if len(model) > 1:
+    #    full_pipe = model
 
-    else:
-        full_pipe = make_pipeline(
-            mne.decoding.Scaler(scalings='mean'), # Scale the data
-            mne.decoding.Vectorizer(), # Vectorize the data
-            model # Add the ML model
-        )
+    #else:
+    full_pipe = make_pipeline(
+        mne.decoding.Scaler(scalings='mean'), # Scale the data
+        mne.decoding.Vectorizer(), # Vectorize the data
+        model # Add the ML model
+    )
 
     # Outer cross-validation
     # Initialize GroupKFold with the desired number of folds
@@ -180,7 +180,7 @@ def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfol
         # Get the data indices for the current participant
         participant_indices = np.where(groups == participant)[0]
 
-        # Split participant data into training and testing using train_test_split
+        # get plit participant data
         X_part, y_part = X[participant_indices], y[participant_indices]
 
         # K fold cross validation
