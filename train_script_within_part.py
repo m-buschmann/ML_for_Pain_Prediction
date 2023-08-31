@@ -51,10 +51,12 @@ def trainingDL_within(model, X, y, task='classification', nfolds=10, groups=None
     unique_participants = np.unique(groups)
     train_iteration = 0
 
-    fold_scores = []
+
 
     # Loop over each participant
     for participant in unique_participants:
+        fold_scores = []
+
         # Get the data indices for the current participant
         participant_indices = np.where(groups == participant)[0]
 
@@ -89,7 +91,7 @@ def trainingDL_within(model, X, y, task='classification', nfolds=10, groups=None
                 shuffle=True,
                 random_state=42,
             )
-            
+
             if task == 'regression':
                 y_valid = y_valid.unsqueeze(1)
                 y_train_fold = y_train_fold.unsqueeze(1)
@@ -155,70 +157,103 @@ def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfol
     best_params_per_fold = {}
 
     # Create a pipeline for preprocessing
-    full_pipe = make_pipeline(
-        mne.decoding.Scaler(scalings='mean'), # Scale the data
-        mne.decoding.Vectorizer(), # Vectorize the data
-        model # Add the ML model
-    )
+    if len(model) > 1:
+        full_pipe = model
+
+    else:
+        full_pipe = make_pipeline(
+            mne.decoding.Scaler(scalings='mean'), # Scale the data
+            mne.decoding.Vectorizer(), # Vectorize the data
+            model # Add the ML model
+        )
 
     # Outer cross-validation
     # Initialize GroupKFold with the desired number of folds
         # Get unique participant IDs
     unique_participants = np.unique(groups)
     outer_train_iteration = 0
-
+    participant_scores = []
     # Loop over each participant
     for participant in unique_participants:
+        fold_scores = []
         print(participant)
         # Get the data indices for the current participant
         participant_indices = np.where(groups == participant)[0]
 
         # Split participant data into training and testing using train_test_split
-        train_idx, test_idx = train_test_split(participant_indices, test_size=1/nfolds)
+        X_part, y_part = X[participant_indices], y[participant_indices]
 
-        X_train_outer, X_test_outer = X[train_idx], X[test_idx]
-        y_train_outer, y_test_outer = y[train_idx], y[test_idx]
+        # K fold cross validation
+        if task ==  'classification':
+            fold_split = StratifiedKFold(n_splits=nfolds, shuffle=True, random_state=42).split(X_part, y_part)
+        else:
+            fold_split = KFold(n_splits=nfolds, shuffle=True, random_state=42).split(X_part, y_part)
 
-        # inner cross-validation
-        # fit regressor to training data of inner CV
-        clf = GridSearchCV(full_pipe, parameters, cv = KFold(n_inner_splits).split(X_train_outer, y_train_outer), refit = True)
-        clf.fit(X_train_outer, y_train_outer)
 
-        # Store best parameters for each fold
-        best_params_fold = clf.best_params_
-        best_params_counts.update([str(best_params_fold)])  
-        best_params_per_fold[participant] = best_params_fold
+        y_pred = np.empty_like(y_part)
+
+        # Outer cross-validation
+        for train_idx, test_idx in fold_split:
+            clf_fold = clone(full_pipe)
+
+            # Split train and test
+            X_train_fold, X_test = X_part[train_idx], X_part[test_idx]
+            y_train_fold, y_test = y_part[train_idx], y_part[test_idx]
+
+            # inner cross-validation
+            # fit regressor to training data of inner CV
+            clf_fold = GridSearchCV(clf_fold, parameters, cv = KFold(n_inner_splits).split(X_train_fold, y_train_fold), refit = True)
+            clf_fold.fit(X_train_fold, y_train_fold)
+
+            # # Store best parameters for each fold
+            best_params_fold = clf_fold.best_params_
+            best_params_counts.update([str(best_params_fold)])
+            best_params_per_fold[participant] = best_params_fold
+
+
+            y_pred[test_idx] = clf_fold.predict(X_test).flatten()
+
+
+            if task == 'regression':
+                fold_scores.append(np.sqrt(mean_squared_error(y_test, y_pred[test_idx])))
+                print("fold RMSE: ", fold_scores[-1])
+            else:
+                fold_scores.append(balanced_accuracy_score(y_test, y_pred[test_idx]))
+                print("fold accuracy: ", fold_scores[-1])
+
+        participant_scores.append(np.mean(fold_scores))
 
         # Fit the selected model to the training set of outer CV
         # For prediction error estimation
         #best_model = model.set_params(**best_params)
         #y_pred_test = best_model.predict(X_test_outer)
 
-        y_pred_test = clf.predict(X_test_outer)  #does this automatically use the best parameters?
 
-        # Store lists of true values and predictions 
-        all_true_labels[test_idx] = y_test_outer
-        all_predictions[test_idx] = y_pred_test
+        # Append the true class names to the list
+        all_true_labels.extend(y_part)
+        # Append the predicted label strings to the list
+        all_predictions.extend(y_pred)
+
 
         # MSEs or accuracies from outer loop
-        if task == 'regression':
-            mse = mean_squared_error(y_test_outer, y_pred_test)
-            score_test.append(mse)
-            print("Mean Squared Error on Test Set:", score_test[-1], "in outer fold", participant)
-            writer.add_scalar('Train Loss/MSE', mse, outer_train_iteration)
+        # if task == 'regression':
+        #     mse = mean_squared_error(y_test_outer, y_pred_test)
+        #     score_test.append(mse)
+        #     print("Mean Squared Error on Test Set:", score_test[-1], "in outer fold", participant)
+        #     writer.add_scalar('Train Loss/MSE', mse, outer_train_iteration)
 
-        if task == 'classification':
-            accuracy = accuracy_score(y_test_outer, y_pred_test)
-            score_test.append(accuracy)
-            print("Accuracy on Test Set:", score_test[-1], "in outer fold", participant)
-            writer.add_scalar('Train Accuracy', accuracy, outer_train_iteration)
+        # if task == 'classification':
+        #     accuracy = accuracy_score(y_test_outer, y_pred_test)
+        #     score_test.append(accuracy)
+        #     print("Accuracy on Test Set:", score_test[-1], "in outer fold", participant)
+        #     writer.add_scalar('Train Accuracy', accuracy, outer_train_iteration)
 
-        outer_train_iteration+=1
+        # outer_train_iteration+=1
 
     # Calculate the score across all folds in the outer loop
-    mean_score = np.mean(score_test)
-    print("Mean Mean Squared Error(regression) or accuracy(classification) in total: {:.2f}".format(mean_score))
-
+    mean_score = np.mean(participant_scores)
+    print("Mean Accuracy/RMSE across all participants: {:.3f}".format(mean_score))
+    writer.close()
     # Calculate the most common best parameter
     most_common_best_param = best_params_counts.most_common(1)[0][0]
 
