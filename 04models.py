@@ -83,9 +83,9 @@ elif "mplab" in current_directory:
     bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
     log_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/logs'
 else:
-    model_name = "covariance_MDM" #set the model to use. also determines dl and kind of task
+    model_name = "shallowFBCSPNetClassification" #set the model to use. also determines dl and kind of task
     part = 'within'# 'between' or 'within' participant
-    target = "5_classes"
+    target = "3_classes"
     optimizer_lr = 0.000625
     bsize = 16
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
@@ -257,7 +257,10 @@ elif model_name == "deep4netClassification":
     # Create an instance of Deep4Net
     deep4net_classification = Deep4Net(
         in_chans=len(epochs.info['ch_names']),
-        n_classes=n_classes_clas)
+        n_classes=n_classes_clas,
+        input_window_samples=X.shape[2], #why those two missing?
+        final_conv_length='auto',
+    )
 
     model = EEGClassifier(
         module=deep4net_classification,
@@ -339,13 +342,13 @@ elif model_name == "deep4netRegression":
 
         ],
         optimizer=torch.optim.AdamW,
-        optimizer__lr = 0.00001,
+        optimizer__lr = 0.00001, #that small?
         optimizer__weight_decay = 0, # As recommended on braindecode.org
         batch_size = bsize,
         max_epochs=50,
         iterator_valid__shuffle=False,
         iterator_train__shuffle=True,
-        device=device,
+        device=device,#why those two missing?
     )
     task = 'regression'
     dl = True
@@ -486,7 +489,7 @@ if dl == False and part == 'within':
 if dl == False and part == 'between':
     mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_between(model, X, y, parameters = parameters, task =task, nfolds=3, n_inner_splits=2, groups=groups, writer=writer)
 if dl == True and part == 'within':
-    mean_score, all_true_labels, all_predictions, participants_scores = trainingDL_within(model, X, y, task=task, groups=groups, writer=writer, nfolds=10)
+    mean_score, all_true_labels, all_predictions, participants_scores = trainingDL_within(model, X, y, task=task, groups=groups, writer=writer, nfolds=2)
 if dl == True and part == 'between':
     mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task=task, nfolds=3, groups=groups, writer=writer)
 
@@ -524,26 +527,27 @@ elif dl == False:
 
 # For classification, build a confusion matrix
 if task == 'classification':
+    if target == "5_classes":
+        target_names = ["auditory", "auditoryrate", "rest", "thermal", "thermalrate"]
+    elif target  == "3_classes":
+        target_names = ["auditory", "rest", "thermal"]
 
     # Convert the lists to numpy arrays
     all_true_labels = np.array(all_true_labels)
     all_predictions = np.array(all_predictions)
 
-    # Get the unique class labels
-    unique_labels = np.unique(np.concatenate((all_true_labels, all_predictions)))
-
-    # Compute the confusion matrix with specified labels
-    cm = confusion_matrix(all_true_labels, all_predictions, labels=unique_labels)
+    # Compute the confusion matrix
+    cm = confusion_matrix(all_true_labels, all_predictions)
     cm_normalized = cm.astype(float) / cm.sum(axis=1)[:, np.newaxis]
-    
+
     # Plot confusion matrix
     fig, ax = plt.subplots(1)
     im = ax.imshow(cm_normalized, interpolation="nearest", cmap=plt.cm.Blues)
     ax.set(title="Normalized Confusion matrix")
     fig.colorbar(im)
-    tick_marks = np.arange(len(unique_labels))
-    plt.xticks(tick_marks, unique_labels, rotation=45)
-    plt.yticks(tick_marks, unique_labels)
+    tick_marks = np.arange(len(target_names))
+    plt.xticks(tick_marks, target_names, rotation=45)
+    plt.yticks(tick_marks, target_names)
     fig.tight_layout(pad=1.5)
     ax.set(ylabel="True label", xlabel="Predicted label")
 

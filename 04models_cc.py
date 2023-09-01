@@ -54,6 +54,7 @@ if cuda:
     part = sys.argv[2]
     optimizer_lr = float(sys.argv[3]) 
     bsize = int(sys.argv[4])  # Convert batch size to an integer
+    target = sys.argv[5]
     if torch.cuda.is_available():
         device = torch.device('cuda')  # PyTorch will use the default GPU
         torch.backends.cudnn.benchmark = True
@@ -68,6 +69,7 @@ elif 'media/mp' in current_directory: #MP's local machine
     model_name = "shallowFBCSPNetClassification"
     part = "between"
     target = "3_classes"
+    bsize = 16
     device = torch.device('cuda')
     bidsroot = 'data/cleaned_epo.fif'
     log_dir= 'logs'
@@ -113,7 +115,6 @@ epochs = epochs[selected_indices]
 print("Number of epochs before removal:", len(metadata_df))
 print("Number of epochs after removal:", len(epochs))
 
-
 # Preprocess the data
 # epochs.filter(4, 80)
 X = epochs.get_data()
@@ -134,7 +135,7 @@ n_chans = len(epochs.info['ch_names'])
 input_window_samples=X.shape[2]
 if target == "3_classes" or "5_classes":
     n_classes_clas=int(target[0])
-bsize = 16
+
 
 
 #__________________________________________________________________
@@ -251,8 +252,11 @@ elif model_name == "deep4netClassification":
     # Create an instance of Deep4Net
     deep4net_classification = Deep4Net(
         in_chans=len(epochs.info['ch_names']),
-        n_classes=n_classes_clas)
-
+        n_classes=n_classes_clas,
+        input_window_samples=X.shape[2], 
+        final_conv_length='auto',
+    )
+    
     model = EEGClassifier(
         module=deep4net_classification,
         criterion=torch.nn.NLLLoss,
@@ -419,7 +423,7 @@ elif model_name == "shallowFBCSPNetRegression":
         #cropped=True,
         #criterion=CroppedLoss,
         #criterion__loss_function=torch.nn.functional.mse_loss,
-                callbacks = [
+        callbacks = [
             "neg_root_mean_squared_error",
             "r2",
             "neg_mean_absolute_error",
@@ -490,7 +494,19 @@ output_dir = f"results{model_name}"
 os.makedirs(output_dir, exist_ok=True)  # Create the directory if it doesn't exist
 output_file = os.path.join(output_dir, f"{part}.csv")
 
-if dl == True:
+if dl == True and part == "within":
+    rows = zip([mean_score], [participants_scores], [all_true_labels], [all_predictions])
+
+    # Transpose the rows to columns
+    columns = list(zip(*rows))
+
+    # Write the columns to a CSV file
+    with open(output_file, 'w', newline='') as csvfile:
+        csvwriter = csv.writer(csvfile, delimiter=',')
+        csvwriter.writerow(["Mean Score", "Test Score", "True Label", "Predicted Label"])  # Write header
+        csvwriter.writerows(columns)  # Write columns as rows
+
+elif dl == True and part == "between":
     rows = zip([mean_score], [score_test], [all_true_labels], [all_predictions])
 
     # Transpose the rows to columns
@@ -501,6 +517,7 @@ if dl == True:
         csvwriter = csv.writer(csvfile, delimiter=',')
         csvwriter.writerow(["Mean Score", "Test Score", "True Label", "Predicted Label"])  # Write header
         csvwriter.writerows(columns)  # Write columns as rows
+
 
 elif dl == False:
     rows = zip([mean_score], [score_test], [most_common_best_param], [all_true_labels], [all_predictions])
@@ -516,26 +533,27 @@ elif dl == False:
 
 # For classification, build a confusion matrix
 if task == 'classification':
+    if target == "5_classes":
+        target_names = ["auditory", "auditoryrate", "rest", "thermal", "thermalrate"]
+    elif target  == "3_classes":
+        target_names = ["auditory", "rest", "thermal"]
 
     # Convert the lists to numpy arrays
     all_true_labels = np.array(all_true_labels)
     all_predictions = np.array(all_predictions)
 
-    # Get the unique class labels
-    unique_labels = np.unique(np.concatenate((all_true_labels, all_predictions)))
-
-    # Compute the confusion matrix with specified labels
-    cm = confusion_matrix(all_true_labels, all_predictions, labels=unique_labels)
+    # Compute the confusion matrix
+    cm = confusion_matrix(all_true_labels, all_predictions)
     cm_normalized = cm.astype(float) / cm.sum(axis=1)[:, np.newaxis]
-    
+
     # Plot confusion matrix
     fig, ax = plt.subplots(1)
     im = ax.imshow(cm_normalized, interpolation="nearest", cmap=plt.cm.Blues)
     ax.set(title="Normalized Confusion matrix")
     fig.colorbar(im)
-    tick_marks = np.arange(len(unique_labels))
-    plt.xticks(tick_marks, unique_labels, rotation=45)
-    plt.yticks(tick_marks, unique_labels)
+    tick_marks = np.arange(len(target_names))
+    plt.xticks(tick_marks, target_names, rotation=45)
+    plt.yticks(tick_marks, target_names)
     fig.tight_layout(pad=1.5)
     ax.set(ylabel="True label", xlabel="Predicted label")
 
