@@ -85,7 +85,7 @@ elif "mplab" in current_directory:
 else:
     model_name = "shallowFBCSPNetClassification" #set the model to use. also determines dl and kind of task
     part = 'within'# 'between' or 'within' participant
-    target = "3_classes"
+    target = "intensity"
     optimizer_lr = 0.000625
     bsize = 16
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
@@ -129,7 +129,7 @@ groups = epochs.metadata["participant_id"].values
 
 n_chans = len(epochs.info['ch_names'])
 input_window_samples=X.shape[2]
-if target == "3_classes" or "5_classes":
+if target == "3_classes" or target =="5_classes":
     n_classes_clas=int(target[0])
 bsize = 16
 

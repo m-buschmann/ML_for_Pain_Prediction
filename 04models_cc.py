@@ -133,7 +133,7 @@ groups = epochs.metadata["participant_id"].values
 
 n_chans = len(epochs.info['ch_names'])
 input_window_samples=X.shape[2]
-if target == "3_classes" or "5_classes":
+if target == "3_classes" or target =="5_classes":
     n_classes_clas=int(target[0])
 
 
