@@ -29,8 +29,8 @@ import os
 from sklearn.linear_model import ElasticNet
 import sys
 from braindecode.preprocessing import exponential_moving_standardize
-from pyriemann.classification import MDM, TSclassifier
-from pyriemann.estimation import Covariances, Shrinkage
+#from pyriemann.classification import MDM, TSclassifier
+#from pyriemann.estimation import Covariances, Shrinkage
 # Set kind of Cross validation and task to perform 
 #part = 'between' # 'between' or 'within' participant
 #task = 'classification' # 'classification' or 'regression'
@@ -226,26 +226,6 @@ elif model_name == "SGD":
         'sgdregressor__alpha': [0.01, 0.1, 1.0],
     }
     task = 'regression'
-    dl = False
-
-elif model_name == 'covariance_MDM':
-    #TODO add parameters for gridsearch
-    model = make_pipeline(
-                Covariances(),
-                Shrinkage(),
-                MDM(metric=dict(mean="riemann", distance="riemann")),
-            )
-    parameters = {
-        'shrinkage__shrinkage': [0.2, 0.5, 0.8],
-        'mdm__metric': [
-            {'mean': 'riemann', 'distance': 'riemann'},
-            {'mean': 'riemann', 'distance': 'logeuclid'},
-            {'mean': 'logeuclid', 'distance': 'riemann'},
-            {'mean': 'logeuclid', 'distance': 'logeuclid'},
-        ], # do we want to change this?
-        'mdm__n_jobs': [-1],
-    }
-    task = 'classification'
     dl = False
 
 elif model_name == "deep4netClassification":
@@ -452,7 +432,25 @@ elif model_name == "shallowFBCSPNetRegression":
     )
     task = 'regression'
     dl = True
-
+"""elif model_name == 'covariance_MDM':
+    #TODO add parameters for gridsearch
+    model = make_pipeline(
+                Covariances(),
+                Shrinkage(),
+                MDM(metric=dict(mean="riemann", distance="riemann")),
+            )
+    parameters = {
+        'shrinkage__shrinkage': [0.2, 0.5, 0.8],
+        'mdm__metric': [
+            {'mean': 'riemann', 'distance': 'riemann'},
+            {'mean': 'riemann', 'distance': 'logeuclid'},
+            {'mean': 'logeuclid', 'distance': 'riemann'},
+            {'mean': 'logeuclid', 'distance': 'logeuclid'},
+        ], # do we want to change this?
+        'mdm__n_jobs': [-1],
+    }
+    task = 'classification'
+    dl = False"""
 print(model_name, part)
 
 #_____________________________________________________________________-

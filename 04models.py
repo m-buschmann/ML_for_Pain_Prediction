@@ -234,25 +234,6 @@ elif model_name == "SGD":
     task = 'regression'
     dl = False
 
-elif model_name == 'covariance_MDM':
-    model = make_pipeline(
-                Covariances(),
-                Shrinkage(),
-                MDM(metric=dict(mean="riemann", distance="riemann")),
-            )
-    parameters = {
-        'shrinkage__shrinkage': [0.2, 0.5, 0.8],
-        'mdm__metric': [
-            {'mean': 'riemann', 'distance': 'riemann'},
-            {'mean': 'riemann', 'distance': 'logeuclid'},
-            {'mean': 'logeuclid', 'distance': 'riemann'},
-            {'mean': 'logeuclid', 'distance': 'logeuclid'},
-        ], # do we want to change this?
-        'mdm__n_jobs': [-1],
-    }
-    task = 'classification'
-    dl = False
-
 elif model_name == "deep4netClassification":
     # Create an instance of Deep4Net
     deep4net_classification = Deep4Net(
@@ -457,7 +438,24 @@ elif model_name == "shallowFBCSPNetRegression":
     )
     task = 'regression'
     dl = True
-
+"""elif model_name == 'covariance_MDM':
+    model = make_pipeline(
+                Covariances(),
+                Shrinkage(),
+                MDM(metric=dict(mean="riemann", distance="riemann")),
+            )
+    parameters = {
+        'shrinkage__shrinkage': [0.2, 0.5, 0.8],
+        'mdm__metric': [
+            {'mean': 'riemann', 'distance': 'riemann'},
+            {'mean': 'riemann', 'distance': 'logeuclid'},
+            {'mean': 'logeuclid', 'distance': 'riemann'},
+            {'mean': 'logeuclid', 'distance': 'logeuclid'},
+        ], # do we want to change this?
+        'mdm__n_jobs': [-1],
+    }
+    task = 'classification'
+    dl = False"""
 print(model_name, part)
 
 
