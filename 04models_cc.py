@@ -29,8 +29,9 @@ import os
 from sklearn.linear_model import ElasticNet
 import sys
 from braindecode.preprocessing import exponential_moving_standardize
-from pyriemann.classification import MDM, TSclassifier
-from pyriemann.estimation import Covariances, Shrinkage
+#from pyriemann.classification import MDM, TSclassifier
+#from pyriemann.estimation import Covariances, Shrinkage
+
 # Set kind of Cross validation and task to perform 
 #part = 'between' # 'between' or 'within' participant
 #task = 'classification' # 'classification' or 'regression'
@@ -45,7 +46,8 @@ from pyriemann.estimation import Covariances, Shrinkage
 current_directory = os.getcwd()
 
 # Check if the keyword "lustre" is present in the current directory
-cuda = "lustre" in current_directory
+cuda = "lustre" in current_directory #this is changed to false if no GPU
+cc = "lustre" in current_directory
 
 # If cuda is True and a GPU is available, set up GPU acceleration in PyTorch
 # And set bidsroot according to device 
@@ -54,6 +56,7 @@ if cuda:
     part = sys.argv[2]
     optimizer_lr = float(sys.argv[3]) 
     bsize = int(sys.argv[4])  # Convert batch size to an integer
+    target = sys.argv[5]
     if torch.cuda.is_available():
         device = torch.device('cuda')  # PyTorch will use the default GPU
         torch.backends.cudnn.benchmark = True
@@ -68,6 +71,7 @@ elif 'media/mp' in current_directory: #MP's local machine
     model_name = "shallowFBCSPNetClassification"
     part = "between"
     target = "3_classes"
+    bsize = 16
     device = torch.device('cuda')
     bidsroot = 'data/cleaned_epo.fif'
     log_dir= 'logs'
@@ -83,9 +87,9 @@ elif "mplab" in current_directory:
     bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
     log_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/logs'
 else:
-    model_name = "shallowFBCSPNetClassification" #set the model to use. also determines dl and kind of task
+    model_name = "shallowFBCSPNetRegression" #set the model to use. also determines dl and kind of task
     part = 'between'# 'between' or 'within' participant
-    target = "3_classes"
+    target = "intensity"
     optimizer_lr = 0.000625
     bsize = 16
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
@@ -113,14 +117,17 @@ epochs = epochs[selected_indices]
 print("Number of epochs before removal:", len(metadata_df))
 print("Number of epochs after removal:", len(epochs))
 
-
 # Preprocess the data
 # epochs.filter(4, 80)
-X = epochs.get_data()
-X = X*1e6 # Convert from V to uV
-# TODO check if this makes sense for non-deep models. Probably not?
-for epo in tqdm(range(X.shape[0]), desc='Normalizing data'): # Loop epochs
-    X[epo, :, :] = exponential_moving_standardize(X[epo, :, :], factor_new=0.001, init_block_size=None) # Normalize the data
+if cc:
+    loaded_data = np.load('preprocessed_data.npz')  # For .npz format
+    X = loaded_data['X']
+else:    
+    X = epochs.get_data()
+    X = X*1e6 # Convert from V to uV
+    # TODO check if this makes sense for non-deep models. Probably not?
+    for epo in tqdm(range(X.shape[0]), desc='Normalizing data'): # Loop epochs
+        X[epo, :, :] = exponential_moving_standardize(X[epo, :, :], factor_new=0.001, init_block_size=None) # Normalize the data
 
 
 # Define the groups (participants) to avoid splitting them across train and test
@@ -132,13 +139,13 @@ groups = epochs.metadata["participant_id"].values
 
 n_chans = len(epochs.info['ch_names'])
 input_window_samples=X.shape[2]
-if target == "3_classes" or "5_classes":
+if target == "3_classes" or target =="5_classes":
     n_classes_clas=int(target[0])
-bsize = 16
+
 
 
 #__________________________________________________________________
-# Training
+# Models
 
 # Choose parameters for nested CV
 if model_name == "LogisticRegression":
@@ -227,22 +234,15 @@ elif model_name == "SGD":
     task = 'regression'
     dl = False
 
-elif model_name == 'covariance_MDM':
-    #TODO add parameters for gridsearch
-    model = make_pipeline(
-                Covariances(),
-                Shrinkage(),
-                MDM(metric=dict(mean="riemann", distance="riemann")),
-            )
-    task = 'classification'
-    dl = False
-
 elif model_name == "deep4netClassification":
     # Create an instance of Deep4Net
     deep4net_classification = Deep4Net(
         in_chans=len(epochs.info['ch_names']),
-        n_classes=n_classes_clas)
-
+        n_classes=n_classes_clas,
+        input_window_samples=X.shape[2], 
+        final_conv_length='auto',
+    )
+    
     model = EEGClassifier(
         module=deep4net_classification,
         criterion=torch.nn.NLLLoss,
@@ -304,7 +304,7 @@ elif model_name == "deep4netRegression":
         #cropped=True,
         #criterion=CroppedLoss,
         #criterion__loss_function=torch.nn.functional.mse_loss,
-                callbacks = [
+        callbacks = [
             "neg_root_mean_squared_error",
             "neg_mean_absolute_error",
             "r2",
@@ -409,7 +409,7 @@ elif model_name == "shallowFBCSPNetRegression":
         #cropped=True,
         #criterion=CroppedLoss,
         #criterion__loss_function=torch.nn.functional.mse_loss,
-                callbacks = [
+        callbacks = [
             "neg_root_mean_squared_error",
             "r2",
             "neg_mean_absolute_error",
@@ -438,23 +438,48 @@ elif model_name == "shallowFBCSPNetRegression":
     )
     task = 'regression'
     dl = True
+"""elif model_name == 'covariance_MDM':
+    model = make_pipeline(
+                Covariances(),
+                Shrinkage(),
+                MDM(metric=dict(mean="riemann", distance="riemann")),
+            )
+    parameters = {
+        'shrinkage__shrinkage': [0.1, 0.2, 0.5, 0.8],
+        'mdm__metric': [
+            {'mean': 'riemann', 'distance': 'riemann'},
+            {'mean': 'riemann', 'distance': 'logeuclid'},
+            {'mean': 'logeuclid', 'distance': 'riemann'},
+            {'mean': 'logeuclid', 'distance': 'logeuclid'},
+        ],
+        'mdm__n_jobs': [-1],
+    }
+    task = 'classification'
+    dl = False"""
 
 print(model_name, part)
 
+#_____________________________________________________________________-
+# Training
 
-
+# Set y (and X)
 if task == 'classification':
+    target == '3_classes' #take this out later! Just for now, to avoid mix up
     epochs.metadata['task'].astype(str)
     if target == '3_classes':
         y = [i.replace('rate', '') for i in epochs.metadata["task"].values]
+        y = np.array(y)
     elif target == '5_classes':
         y = epochs.metadata["task"].values
 elif task == 'regression':
+    target == 'intensity' #take this out later! Just for now, to avoid mix up
     if target == 'rating':
         y = epochs.metadata["rating"].values 
     elif target == 'intensity':
+        #only use thermal task for pain intensity
+        selected_tasks = ["thermal", "thermalrate"]
+        X = epochs[epochs.metadata["task"].isin(selected_tasks)]
         y = epochs.metadata["intensity"].values 
-
 
 # Get writer for tensorboard
 writer = SummaryWriter(log_dir=opj(log_dir, model_name, part))
@@ -463,7 +488,7 @@ writer = SummaryWriter(log_dir=opj(log_dir, model_name, part))
 if dl == False and part == 'within':
     mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_within(model, X, y, parameters, task=task, nfolds=10, n_inner_splits=5, groups=groups, writer=writer)
 if dl == False and part == 'between':
-    mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_between(model, X, y, parameters = parameters, task =task, nfolds=10, n_inner_splits=2, groups=groups, writer=writer)
+    mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_between(model, X, y, parameters = parameters, task =task, nfolds=10, n_inner_splits=5, groups=groups, writer=writer)
 if dl == True and part == 'within':
     mean_score, all_true_labels, all_predictions, participants_scores = trainingDL_within(model, X, y, task=task, groups=groups, writer=writer, nfolds=10)
 if dl == True and part == 'between':
@@ -477,7 +502,19 @@ output_dir = f"results{model_name}"
 os.makedirs(output_dir, exist_ok=True)  # Create the directory if it doesn't exist
 output_file = os.path.join(output_dir, f"{part}.csv")
 
-if dl == True:
+if dl == True and part == "within":
+    rows = zip([mean_score], [participants_scores], [all_true_labels], [all_predictions])
+
+    # Transpose the rows to columns
+    columns = list(zip(*rows))
+
+    # Write the columns to a CSV file
+    with open(output_file, 'w', newline='') as csvfile:
+        csvwriter = csv.writer(csvfile, delimiter=',')
+        csvwriter.writerow(["Mean Score", "Test Score", "True Label", "Predicted Label"])  # Write header
+        csvwriter.writerows(columns)  # Write columns as rows
+
+elif dl == True and part == "between":
     rows = zip([mean_score], [score_test], [all_true_labels], [all_predictions])
 
     # Transpose the rows to columns
@@ -488,6 +525,7 @@ if dl == True:
         csvwriter = csv.writer(csvfile, delimiter=',')
         csvwriter.writerow(["Mean Score", "Test Score", "True Label", "Predicted Label"])  # Write header
         csvwriter.writerows(columns)  # Write columns as rows
+
 
 elif dl == False:
     rows = zip([mean_score], [score_test], [most_common_best_param], [all_true_labels], [all_predictions])
@@ -503,7 +541,10 @@ elif dl == False:
 
 # For classification, build a confusion matrix
 if task == 'classification':
-    target_names = ["thermalrate", "auditoryrate", "thermal", "auditory", "rest"]
+    if target == "5_classes":
+        target_names = ["auditory", "auditoryrate", "rest", "thermal", "thermalrate"]
+    elif target  == "3_classes":
+        target_names = ["auditory", "rest", "thermal"]
 
     # Convert the lists to numpy arrays
     all_true_labels = np.array(all_true_labels)
@@ -521,7 +562,7 @@ if task == 'classification':
     tick_marks = np.arange(len(target_names))
     plt.xticks(tick_marks, target_names, rotation=45)
     plt.yticks(tick_marks, target_names)
-    fig.tight_layout()
+    fig.tight_layout(pad=1.5)
     ax.set(ylabel="True label", xlabel="Predicted label")
 
     # Save the confusion matrix plot as an image file

@@ -3,7 +3,7 @@
 import mne
 import numpy as np
 import torch
-from sklearn.pipeline import make_pipeline
+from sklearn.pipeline import make_pipeline, Pipeline
 from sklearn.model_selection import KFold, train_test_split, GridSearchCV, StratifiedKFold
 from sklearn.metrics import accuracy_score, mean_squared_error, balanced_accuracy_score
 from collections import Counter
@@ -44,18 +44,16 @@ def trainingDL_within(model, X, y, task='classification', nfolds=10, groups=None
     # Initialize an array to store accuracy scores for each participant
     participant_scores = []
     # Initialize arrays to store true labels and predictions for each fold
-    all_true_labels = []
-    all_predictions = []
+    all_true_labels = np.empty_like(y)
+    all_predictions = np.empty_like(y)
 
     # Get unique participant IDs
     unique_participants = np.unique(groups)
-    train_iteration = 0
-
-
 
     # Loop over each participant
     for participant in unique_participants:
         fold_scores = []
+        print(participant)
 
         # Get the data indices for the current participant
         participant_indices = np.where(groups == participant)[0]
@@ -70,7 +68,7 @@ def trainingDL_within(model, X, y, task='classification', nfolds=10, groups=None
 
         y_pred = np.empty_like(y_part)
 
-        for train_idx, test_idx in fold_split:
+        for fold, (train_idx, test_idx) in enumerate(fold_split):
             clf_fold = clone(model)
 
             # Split train and test
@@ -107,16 +105,18 @@ def trainingDL_within(model, X, y, task='classification', nfolds=10, groups=None
             if task == 'regression':
                 fold_scores.append(np.sqrt(mean_squared_error(y_test, y_pred[test_idx])))
                 print("fold RMSE: ", fold_scores[-1])
+                writer.add_scalar('Test RMSE', np.sqrt(mean_squared_error(y_test, y_pred[test_idx])), fold) #added again?
             else:
                 fold_scores.append(balanced_accuracy_score(y_test, y_pred[test_idx]))
                 print("fold accuracy: ", fold_scores[-1])
+                writer.add_scalar('Test Accuracy', balanced_accuracy_score(y_test, y_pred[test_idx]), fold)
 
         participant_scores.append(np.mean(fold_scores))
 
         # Append the true class names to the list
-        all_true_labels.extend(y_part)
+        all_true_labels[participant_indices] = y_part #probably dont need
         # Append the predicted label strings to the list
-        all_predictions.extend(y_pred)
+        all_predictions[participant_indices] = y_pred 
 
     # Calculate the mean accuracy across all participants
     mean_score = np.mean(participant_scores)
@@ -157,21 +157,20 @@ def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfol
     best_params_per_fold = {}
 
     # Create a pipeline for preprocessing
-    #if len(model) > 1:
-    #    full_pipe = model
+    if isinstance(model, Pipeline):
+        full_pipe = model
 
-    #else:
-    full_pipe = make_pipeline(
-        mne.decoding.Scaler(scalings='mean'), # Scale the data
-        mne.decoding.Vectorizer(), # Vectorize the data
-        model # Add the ML model
-    )
+    else:
+        full_pipe = make_pipeline(
+            #mne.decoding.Scaler(scalings='mean'), # Scale the data
+            mne.decoding.Vectorizer(), # Vectorize the data
+            model # Add the ML model
+        )
 
     # Outer cross-validation
     # Initialize GroupKFold with the desired number of folds
         # Get unique participant IDs
     unique_participants = np.unique(groups)
-    outer_train_iteration = 0
     participant_scores = []
     # Loop over each participant
     for participant in unique_participants:
@@ -193,7 +192,7 @@ def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfol
         y_pred = np.empty_like(y_part)
 
         # Outer cross-validation
-        for train_idx, test_idx in fold_split:
+        for fold, (train_idx, test_idx) in enumerate(fold_split):
             clf_fold = clone(full_pipe)
 
             # Split train and test
@@ -217,9 +216,11 @@ def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfol
             if task == 'regression':
                 fold_scores.append(np.sqrt(mean_squared_error(y_test, y_pred[test_idx])))
                 print("fold RMSE: ", fold_scores[-1])
+                writer.add_scalar('RMSE', np.sqrt(mean_squared_error(y_test, y_pred[test_idx])), fold) #added?
             else:
                 fold_scores.append(balanced_accuracy_score(y_test, y_pred[test_idx]))
                 print("fold accuracy: ", fold_scores[-1])
+                writer.add_scalar('Accuracy', balanced_accuracy_score(y_test, y_pred[test_idx]), fold) #added?
 
         participant_scores.append(np.mean(fold_scores))
 
@@ -230,9 +231,9 @@ def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfol
 
 
         # Append the true class names to the list
-        all_true_labels.extend(y_part)
+        all_true_labels[participant_indices] = y_part #probably dont need
         # Append the predicted label strings to the list
-        all_predictions.extend(y_pred)
+        all_predictions[participant_indices] = y_pred 
 
 
         # MSEs or accuracies from outer loop
@@ -253,7 +254,7 @@ def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfol
     # Calculate the score across all folds in the outer loop
     mean_score = np.mean(participant_scores)
     print("Mean Accuracy/RMSE across all participants: {:.3f}".format(mean_score))
-    writer.close()
+
     # Calculate the most common best parameter
     most_common_best_param = best_params_counts.most_common(1)[0][0]
 

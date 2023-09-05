@@ -83,9 +83,9 @@ elif "mplab" in current_directory:
     bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
     log_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/logs'
 else:
-    model_name = "RFClassifier" #set the model to use. also determines dl and kind of task
+    model_name = "shallowFBCSPNetClassification" #set the model to use. also determines dl and kind of task
     part = 'within'# 'between' or 'within' participant
-    target = "3_classes"
+    target = "intensity"
     optimizer_lr = 0.000625
     bsize = 16
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
@@ -118,9 +118,6 @@ print("Number of epochs after removal:", len(epochs))
 # epochs.filter(4, 80)
 X = epochs.get_data()
 X = X*1e6 # Convert from V to uV
-# TODO check if this makes sense for non-deep models. Probably not?
-for epo in tqdm(range(X.shape[0]), desc='Normalizing data'): # Loop epochs
-    X[epo, :, :] = exponential_moving_standardize(X[epo, :, :], factor_new=0.001, init_block_size=None) # Normalize the data
 
 
 # Define the groups (participants) to avoid splitting them across train and test
@@ -132,13 +129,23 @@ groups = epochs.metadata["participant_id"].values
 
 n_chans = len(epochs.info['ch_names'])
 input_window_samples=X.shape[2]
-if target == "3_classes" or "5_classes":
+if target == "3_classes" or target =="5_classes":
     n_classes_clas=int(target[0])
 bsize = 16
 
 
 #__________________________________________________________________
 # Training
+# Define the possible mean and distance metrics
+possible_mean_metrics = ['riemann', 'logeuclid']  # List of possible mean metrics
+possible_distance_metrics = ['riemann', 'logeuclid']  # List of possible distance metrics
+
+# Generate all combinations of mean and distance metrics
+metric_combinations = [
+    {'mean': mean_metric, 'distance': distance_metric}
+    for mean_metric in possible_mean_metrics
+    for distance_metric in possible_distance_metrics
+]
 
 # Choose parameters for nested CV
 if model_name == "LogisticRegression":
@@ -227,21 +234,14 @@ elif model_name == "SGD":
     task = 'regression'
     dl = False
 
-elif model_name == 'covariance_MDM':
-    #TODO add parameters for gridsearch
-    model = make_pipeline(
-                Covariances(),
-                Shrinkage(),
-                MDM(metric=dict(mean="riemann", distance="riemann")),
-            )
-    task = 'classification'
-    dl = False
-
 elif model_name == "deep4netClassification":
     # Create an instance of Deep4Net
     deep4net_classification = Deep4Net(
         in_chans=len(epochs.info['ch_names']),
-        n_classes=n_classes_clas)
+        n_classes=n_classes_clas,
+        input_window_samples=X.shape[2], #why those two missing?
+        final_conv_length='auto',
+    )
 
     model = EEGClassifier(
         module=deep4net_classification,
@@ -323,13 +323,13 @@ elif model_name == "deep4netRegression":
 
         ],
         optimizer=torch.optim.AdamW,
-        optimizer__lr = 0.00001,
+        optimizer__lr = 0.00001, #that small?
         optimizer__weight_decay = 0, # As recommended on braindecode.org
         batch_size = bsize,
         max_epochs=50,
         iterator_valid__shuffle=False,
         iterator_train__shuffle=True,
-        device=device,
+        device=device,#why those two missing?
     )
     task = 'regression'
     dl = True
@@ -409,7 +409,7 @@ elif model_name == "shallowFBCSPNetRegression":
         #cropped=True,
         #criterion=CroppedLoss,
         #criterion__loss_function=torch.nn.functional.mse_loss,
-                callbacks = [
+        callbacks = [
             "neg_root_mean_squared_error",
             "r2",
             "neg_mean_absolute_error",
@@ -438,7 +438,24 @@ elif model_name == "shallowFBCSPNetRegression":
     )
     task = 'regression'
     dl = True
-
+"""elif model_name == 'covariance_MDM':
+    model = make_pipeline(
+                Covariances(),
+                Shrinkage(),
+                MDM(metric=dict(mean="riemann", distance="riemann")),
+            )
+    parameters = {
+        'shrinkage__shrinkage': [0.2, 0.5, 0.8],
+        'mdm__metric': [
+            {'mean': 'riemann', 'distance': 'riemann'},
+            {'mean': 'riemann', 'distance': 'logeuclid'},
+            {'mean': 'logeuclid', 'distance': 'riemann'},
+            {'mean': 'logeuclid', 'distance': 'logeuclid'},
+        ], # do we want to change this?
+        'mdm__n_jobs': [-1],
+    }
+    task = 'classification'
+    dl = False"""
 print(model_name, part)
 
 
@@ -456,6 +473,11 @@ elif task == 'regression':
     elif target == 'intensity':
         y = epochs.metadata["intensity"].values 
 
+# TODO check if this makes sense for non-deep models. Probably not?
+if dl == True:
+    for epo in tqdm(range(X.shape[0]), desc='Normalizing data'): # Loop epochs
+        X[epo, :, :] = exponential_moving_standardize(X[epo, :, :], factor_new=0.001, init_block_size=None) # Normalize the data
+
 # Get writer for tensorboard
 writer = SummaryWriter(log_dir=opj(log_dir, model_name, part))
 
@@ -465,7 +487,7 @@ if dl == False and part == 'within':
 if dl == False and part == 'between':
     mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_between(model, X, y, parameters = parameters, task =task, nfolds=3, n_inner_splits=2, groups=groups, writer=writer)
 if dl == True and part == 'within':
-    mean_score, all_true_labels, all_predictions, participants_scores = trainingDL_within(model, X, y, task=task, groups=groups, writer=writer, nfolds=10)
+    mean_score, all_true_labels, all_predictions, participants_scores = trainingDL_within(model, X, y, task=task, groups=groups, writer=writer, nfolds=2)
 if dl == True and part == 'between':
     mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task=task, nfolds=3, groups=groups, writer=writer)
 
@@ -503,7 +525,10 @@ elif dl == False:
 
 # For classification, build a confusion matrix
 if task == 'classification':
-    target_names = ["thermalrate", "auditoryrate", "thermal", "auditory", "rest"]
+    if target == "5_classes":
+        target_names = ["auditory", "auditoryrate", "rest", "thermal", "thermalrate"]
+    elif target  == "3_classes":
+        target_names = ["auditory", "rest", "thermal"]
 
     # Convert the lists to numpy arrays
     all_true_labels = np.array(all_true_labels)
@@ -521,7 +546,7 @@ if task == 'classification':
     tick_marks = np.arange(len(target_names))
     plt.xticks(tick_marks, target_names, rotation=45)
     plt.yticks(tick_marks, target_names)
-    fig.tight_layout()
+    fig.tight_layout(pad=1.5)
     ax.set(ylabel="True label", xlabel="Predicted label")
 
     # Save the confusion matrix plot as an image file

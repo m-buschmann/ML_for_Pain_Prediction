@@ -3,7 +3,7 @@
 import mne
 import numpy as np
 import torch
-from sklearn.pipeline import make_pipeline
+from sklearn.pipeline import make_pipeline, Pipeline
 from sklearn.model_selection import train_test_split, GroupKFold, KFold, GridSearchCV, GroupShuffleSplit
 from sklearn.metrics import accuracy_score, mean_squared_error
 from collections import Counter
@@ -128,7 +128,7 @@ def trainingDL_between(model, X, y, task = 'regression', nfolds=10, groups=None,
 
     if task == 'regression':
         mse_test = mean_squared_error(all_true_labels, all_predictions)
-        r2_test = r2_score(y_test, y_pred_test)
+        r2_test = r2_score(y_test, y_pred_test) #referenced before assignment
 
         print("Mean Squared Error total:", score_test)
         writer.add_scalar('Test Loss/MSE', mse_test)
@@ -185,14 +185,14 @@ def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfo
     best_params_per_fold = {}
 
     # Create a pipeline for preprocessing
-    #if len(model) > 1:
-    #    full_pipe = model
-    #else:
-    full_pipe = make_pipeline(
-        mne.decoding.Scaler(scalings='mean'), # Scale the data
-        mne.decoding.Vectorizer(), # Vectorize the data
-        model # Add the ML model
-    )
+    if isinstance(model, Pipeline):
+        full_pipe = model
+    else:
+        full_pipe = make_pipeline(
+            #mne.decoding.Scaler(scalings='mean'), # data already normalized
+            mne.decoding.Vectorizer(), # Vectorize the data
+            model # Add the ML model
+        )
 
     # Outer cross-validation
     # Initialize GroupKFold with the desired number of folds
