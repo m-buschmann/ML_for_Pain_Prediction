@@ -52,11 +52,6 @@ cc = "lustre" in current_directory
 # If cuda is True and a GPU is available, set up GPU acceleration in PyTorch
 # And set bidsroot according to device 
 if cuda:
-    model_name = sys.argv[1]
-    part = sys.argv[2]
-    optimizer_lr = float(sys.argv[3]) 
-    bsize = int(sys.argv[4])  # Convert batch size to an integer
-    target = sys.argv[5]
     if torch.cuda.is_available():
         device = torch.device('cuda')  # PyTorch will use the default GPU
         torch.backends.cudnn.benchmark = True
@@ -121,7 +116,7 @@ print("Number of epochs after removal:", len(epochs))
 # epochs.filter(4, 80)
 X = epochs.get_data()
 X = X*1e6 # Convert from V to uV
-# TODO check if this makes sense for non-deep models. Probably not?
+
 for epo in tqdm(range(X.shape[0]), desc='Normalizing data'): # Loop epochs
     X[epo, :, :] = exponential_moving_standardize(X[epo, :, :], factor_new=0.001, init_block_size=None) # Normalize the data
 

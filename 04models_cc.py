@@ -101,28 +101,27 @@ data_path = opj(bidsroot)
 epochs = mne.read_epochs(data_path, preload=True)
 
 
-#remove epochs above threshold
-threshold = 20
-
-# Get the metadata DataFrame from the Epochs object
-metadata_df = epochs.metadata
-
-# Get indices of epochs that meet the threshold
-selected_indices = np.where(metadata_df["diff_intensity"] <= abs(threshold))[0]
-
-# Filter out epochs based on the diff_intensity threshold
-epochs = epochs[selected_indices]
-
-# Print the initial and final number of epochs
-print("Number of epochs before removal:", len(metadata_df))
-print("Number of epochs after removal:", len(epochs))
-
 # Preprocess the data
 # epochs.filter(4, 80)
 if cc:
     loaded_data = np.load('preprocessed_data.npz')  # For .npz format
     X = loaded_data['X']
 else:    
+    #remove epochs above threshold
+    threshold = 20
+
+    # Get the metadata DataFrame from the Epochs object
+    metadata_df = epochs.metadata
+
+    # Get indices of epochs that meet the threshold
+    selected_indices = np.where(metadata_df["diff_intensity"] <= abs(threshold))[0]
+
+    # Filter out epochs based on the diff_intensity threshold
+    epochs = epochs[selected_indices]
+
+    # Print the initial and final number of epochs
+    print("Number of epochs before removal:", len(metadata_df))
+    print("Number of epochs after removal:", len(epochs))
     X = epochs.get_data()
     X = X*1e6 # Convert from V to uV
     # TODO check if this makes sense for non-deep models. Probably not?

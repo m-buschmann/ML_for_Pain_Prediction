@@ -128,7 +128,7 @@ def trainingDL_between(model, X, y, task = 'regression', nfolds=10, groups=None,
 
     if task == 'regression':
         mse_test = mean_squared_error(all_true_labels, all_predictions)
-        r2_test = r2_score(y_test, y_pred_test) #referenced before assignment
+        r2_test = r2_score(all_true_labels, all_predictions) #correct?
 
         print("Mean Squared Error total:", score_test)
         writer.add_scalar('Test Loss/MSE', mse_test)
@@ -140,8 +140,8 @@ def trainingDL_between(model, X, y, task = 'regression', nfolds=10, groups=None,
         # Convert y_test to integer type
         #y_test = y_test.astype(int)  # Ensure integer type
         # Convert the predicted integer indices to original class names
-        y_test = label_encoder.inverse_transform(all_true_labels)
-        y_pred_test = label_encoder.inverse_transform(all_predictions)
+        #y_test = label_encoder.inverse_transform(all_true_labels)
+        #y_pred_test = label_encoder.inverse_transform(all_predictions)
         writer.add_scalar('Test Accuracy', score_test)
 
 
