@@ -480,6 +480,7 @@ elif task == 'regression':
 print("groups:", len(groups))
 print("X:",len(X))
 print("y:",len(y))
+
 # Get writer for tensorboard
 writer = SummaryWriter(log_dir=opj(log_dir, model_name, part))
 
@@ -502,7 +503,7 @@ os.makedirs(output_dir, exist_ok=True)  # Create the directory if it doesn't exi
 output_file = os.path.join(output_dir, f"{part}.csv")
 
 if dl == True and part == "within":
-    rows = zip([mean_score], [participants_scores], [all_true_labels], [all_predictions])
+    """rows = zip([mean_score], [participants_scores], [all_true_labels], [all_predictions])
 
     # Transpose the rows to columns
     columns = list(zip(*rows))
@@ -511,7 +512,22 @@ if dl == True and part == "within":
     with open(output_file, 'w', newline='') as csvfile:
         csvwriter = csv.writer(csvfile, delimiter=',')
         csvwriter.writerow(["Mean Score", "Participant Scores", "True Label", "Predicted Label"])  # Write header
-        csvwriter.writerows(columns)  # Write columns as rows
+        csvwriter.writerows(columns)  # Write columns as rows"""
+    
+    import pandas as pd
+
+    # Assuming mean_score, participants_scores, all_true_labels, and all_predictions are lists or arrays
+
+    # Create a DataFrame
+    data = pd.DataFrame({
+        "Mean Score": mean_score,
+        "Participant Score": participants_scores,
+        "True Label": all_true_labels,
+        "Predicted Label": all_predictions
+    })
+
+    # Write the DataFrame to a CSV file
+    data.to_csv(output_file, index=False)
 
 elif dl == True and part == "between":
     rows = zip([mean_score], [score_test], [all_true_labels], [all_predictions])
