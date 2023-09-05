@@ -29,8 +29,9 @@ import os
 from sklearn.linear_model import ElasticNet
 import sys
 from braindecode.preprocessing import exponential_moving_standardize
-from pyriemann.classification import MDM, TSclassifier
-from pyriemann.estimation import Covariances, Shrinkage
+#from pyriemann.classification import MDM, TSclassifier
+#from pyriemann.estimation import Covariances, Shrinkage
+
 # Set kind of Cross validation and task to perform 
 #part = 'between' # 'between' or 'within' participant
 #task = 'classification' # 'classification' or 'regression'
@@ -45,7 +46,8 @@ from pyriemann.estimation import Covariances, Shrinkage
 current_directory = os.getcwd()
 
 # Check if the keyword "lustre" is present in the current directory
-cuda = "lustre" in current_directory
+cuda = "lustre" in current_directory #this is changed to false if no GPU
+cc = "lustre" in current_directory
 
 # If cuda is True and a GPU is available, set up GPU acceleration in PyTorch
 # And set bidsroot according to device 
@@ -53,7 +55,8 @@ if cuda:
     model_name = sys.argv[1]
     part = sys.argv[2]
     optimizer_lr = float(sys.argv[3]) 
-    bsize = int(sys.argv[4])  # Convert batch size to an integer
+    bsize = 16  
+    target = sys.argv[5]
     if torch.cuda.is_available():
         device = torch.device('cuda')  # PyTorch will use the default GPU
         torch.backends.cudnn.benchmark = True
@@ -68,6 +71,7 @@ elif 'media/mp' in current_directory: #MP's local machine
     model_name = "shallowFBCSPNetClassification"
     part = "between"
     target = "3_classes"
+    bsize = 16
     device = torch.device('cuda')
     bidsroot = 'data/cleaned_epo.fif'
     log_dir= 'logs'
@@ -85,7 +89,7 @@ elif "mplab" in current_directory:
 else:
     model_name = "shallowFBCSPNetClassification" #set the model to use. also determines dl and kind of task
     part = 'within'# 'between' or 'within' participant
-    target = "intensity"
+    target = "3_classes"
     optimizer_lr = 0.000625
     bsize = 16
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
@@ -97,27 +101,31 @@ data_path = opj(bidsroot)
 epochs = mne.read_epochs(data_path, preload=True)
 
 
-#remove epochs above threshold
-threshold = 20
-
-# Get the metadata DataFrame from the Epochs object
-metadata_df = epochs.metadata
-
-# Get indices of epochs that meet the threshold
-selected_indices = np.where(metadata_df["diff_intensity"] <= abs(threshold))[0]
-
-# Filter out epochs based on the diff_intensity threshold
-epochs = epochs[selected_indices]
-
-# Print the initial and final number of epochs
-print("Number of epochs before removal:", len(metadata_df))
-print("Number of epochs after removal:", len(epochs))
-
-
 # Preprocess the data
 # epochs.filter(4, 80)
-X = epochs.get_data()
-X = X*1e6 # Convert from V to uV
+if cc:
+    loaded_data = np.load('preprocessed_data.npz')  # For .npz format
+    X = loaded_data['X']
+else:    
+    #remove epochs above threshold
+    threshold = 20
+
+    # Get the metadata DataFrame from the Epochs object
+    metadata_df = epochs.metadata
+
+    # Get indices of epochs that meet the threshold
+    selected_indices = np.where(metadata_df["diff_intensity"] <= abs(threshold))[0]
+
+    # Filter out epochs based on the diff_intensity threshold
+    epochs = epochs[selected_indices]
+
+    # Print the initial and final number of epochs
+    print("Number of epochs before removal:", len(metadata_df))
+    print("Number of epochs after removal:", len(epochs))
+    X = epochs.get_data()
+    X = X*1e6 # Convert from V to uV
+    for epo in tqdm(range(X.shape[0]), desc='Normalizing data'): # Loop epochs
+        X[epo, :, :] = exponential_moving_standardize(X[epo, :, :], factor_new=0.001, init_block_size=None) # Normalize the data
 
 
 # Define the groups (participants) to avoid splitting them across train and test
@@ -131,21 +139,12 @@ n_chans = len(epochs.info['ch_names'])
 input_window_samples=X.shape[2]
 if target == "3_classes" or target =="5_classes":
     n_classes_clas=int(target[0])
-bsize = 16
+
+
 
 
 #__________________________________________________________________
-# Training
-# Define the possible mean and distance metrics
-possible_mean_metrics = ['riemann', 'logeuclid']  # List of possible mean metrics
-possible_distance_metrics = ['riemann', 'logeuclid']  # List of possible distance metrics
-
-# Generate all combinations of mean and distance metrics
-metric_combinations = [
-    {'mean': mean_metric, 'distance': distance_metric}
-    for mean_metric in possible_mean_metrics
-    for distance_metric in possible_distance_metrics
-]
+# Models
 
 # Choose parameters for nested CV
 if model_name == "LogisticRegression":
@@ -239,10 +238,10 @@ elif model_name == "deep4netClassification":
     deep4net_classification = Deep4Net(
         in_chans=len(epochs.info['ch_names']),
         n_classes=n_classes_clas,
-        input_window_samples=X.shape[2], #why those two missing?
+        input_window_samples=X.shape[2], 
         final_conv_length='auto',
     )
-
+    
     model = EEGClassifier(
         module=deep4net_classification,
         criterion=torch.nn.NLLLoss,
@@ -304,7 +303,7 @@ elif model_name == "deep4netRegression":
         #cropped=True,
         #criterion=CroppedLoss,
         #criterion__loss_function=torch.nn.functional.mse_loss,
-                callbacks = [
+        callbacks = [
             "neg_root_mean_squared_error",
             "neg_mean_absolute_error",
             "r2",
@@ -323,13 +322,13 @@ elif model_name == "deep4netRegression":
 
         ],
         optimizer=torch.optim.AdamW,
-        optimizer__lr = 0.00001, #that small?
+        optimizer__lr = 0.00001,
         optimizer__weight_decay = 0, # As recommended on braindecode.org
         batch_size = bsize,
         max_epochs=50,
         iterator_valid__shuffle=False,
         iterator_train__shuffle=True,
-        device=device,#why those two missing?
+        device=device,
     )
     task = 'regression'
     dl = True
@@ -445,22 +444,26 @@ elif model_name == "shallowFBCSPNetRegression":
                 MDM(metric=dict(mean="riemann", distance="riemann")),
             )
     parameters = {
-        'shrinkage__shrinkage': [0.2, 0.5, 0.8],
+        'shrinkage__shrinkage': [0.1, 0.2, 0.5, 0.8],
         'mdm__metric': [
             {'mean': 'riemann', 'distance': 'riemann'},
             {'mean': 'riemann', 'distance': 'logeuclid'},
             {'mean': 'logeuclid', 'distance': 'riemann'},
             {'mean': 'logeuclid', 'distance': 'logeuclid'},
-        ], # do we want to change this?
+        ],
         'mdm__n_jobs': [-1],
     }
     task = 'classification'
     dl = False"""
+
 print(model_name, part)
 
+#_____________________________________________________________________-
+# Training
 
-# Set y
+# Set y (and X)
 if task == 'classification':
+    target == '3_classes' #take this out later! Just for now, to avoid mix up
     epochs.metadata['task'].astype(str)
     if target == '3_classes':
         y = [i.replace('rate', '') for i in epochs.metadata["task"].values]
@@ -468,15 +471,14 @@ if task == 'classification':
     elif target == '5_classes':
         y = epochs.metadata["task"].values
 elif task == 'regression':
+    target == 'intensity' #take this out later! Just for now, to avoid mix up
     if target == 'rating':
         y = epochs.metadata["rating"].values 
     elif target == 'intensity':
+        #only use thermal task for pain intensity
+        selected_tasks = ["thermal", "thermalrate"]
+        X = epochs[epochs.metadata["task"].isin(selected_tasks)]
         y = epochs.metadata["intensity"].values 
-
-# TODO check if this makes sense for non-deep models. Probably not?
-if dl == True:
-    for epo in tqdm(range(X.shape[0]), desc='Normalizing data'): # Loop epochs
-        X[epo, :, :] = exponential_moving_standardize(X[epo, :, :], factor_new=0.001, init_block_size=None) # Normalize the data
 
 # Get writer for tensorboard
 writer = SummaryWriter(log_dir=opj(log_dir, model_name, part))

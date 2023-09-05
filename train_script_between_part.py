@@ -106,10 +106,10 @@ def trainingDL_between(model, X, y, task = 'regression', nfolds=10, groups=None,
         all_predictions[test_index] = y_pred
 
         if task == 'regression':
-            mse = mean_squared_error(y_test, y_pred)
-            scores.append(mse)
-            print("Mean Squared Error in fold", i+1, ":", mse)
-            writer.add_scalar('Train Loss/MSE', mse, i+1) 
+            rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+            scores.append(rmse)
+            print("Mean Squared Error in fold", i+1, ":", rmse)
+            writer.add_scalar('Train Loss/MSE', rmse, i+1) 
             # Calculate R-squared score
             r2 = r2_score(y_test, y_pred)
             writer.add_scalar('Train R-squared', r2, i+1)
@@ -120,23 +120,21 @@ def trainingDL_between(model, X, y, task = 'regression', nfolds=10, groups=None,
             print("Accuracy in fold", i+1, ":", accuracy)
             writer.add_scalar('Train Accuracy', accuracy, i+1)
 
-    # Calculate the mean mean squared error across all folds
+    # Calculate the mean rmse across all folds
     mean_score = np.mean(scores)
-    print("Mean Mean Squared Error(regression) or accuracy(classification) over all folds: {:.2f}".format(mean_score))
-
-    # Test the model on completely new data
+    print("Mean  Root Mean Squared Error(regression) or accuracy(classification) over all folds: {:.2f}".format(mean_score))
 
     if task == 'regression':
-        mse_test = mean_squared_error(all_true_labels, all_predictions)
+        score_test = np.sqrt(mean_squared_error(all_true_labels, all_predictions)) #RMSE?
         r2_test = r2_score(all_true_labels, all_predictions) #correct?
 
-        print("Mean Squared Error total:", score_test)
-        writer.add_scalar('Test Loss/MSE', mse_test)
-        writer.add_scalar('Test R-squared', r2_test)
+        print("Root Mean Squared Error total:", score_test) #these are total rates, not test rates, correct?
+        writer.add_scalar('Total Loss/RMSE', score_test)
+        writer.add_scalar('Total R-squared', r2_test)
 
     if task == 'classification':
         score_test = accuracy_score(all_true_labels, all_predictions)
-        print("Accuracy on Test Set:", score_test)
+        print("Total Accuracy:", score_test)  #again, these are total rates, not test rates, correct?
         # Convert y_test to integer type
         #y_test = y_test.astype(int)  # Ensure integer type
         # Convert the predicted integer indices to original class names
@@ -216,14 +214,14 @@ def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfo
         y_pred_test = clf.predict(X_test_outer)
 
         # Store lists of true values and predictions 
-        all_true_labels[test_index_outer] = y_test_outer#probably dont nee
-        all_predictions[test_index_outer] = y_pred_test #added again?
+        all_true_labels[test_index_outer] = y_test_outer
+        all_predictions[test_index_outer] = y_pred_test 
 
         # MSEs or accuracies from outer loop
         if task == 'regression':
-            score_test.append(mean_squared_error(y_test_outer, y_pred_test))
+            score_test.append(np.sqrt(mean_squared_error(y_test_outer, y_pred_test)))
             print("Mean Squared Error on Test Set:", score_test[fold], "in outer fold", fold+1)
-            writer.add_scalar('Test Loss/MSE', score_test[fold], fold+1) 
+            writer.add_scalar('Test Loss/RMSE', score_test[fold], fold+1) 
 
         if task == 'classification':
             score_test.append(accuracy_score(y_test_outer, y_pred_test))

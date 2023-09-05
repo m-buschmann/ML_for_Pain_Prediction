@@ -17,7 +17,7 @@ from skorch.callbacks import Checkpoint, EarlyStopping, LRScheduler, ProgressBar
 from train_script_between_part import trainingDL_between, training_nested_cv_between
 from train_script_within_part import training_nested_cv_within, trainingDL_within
 import torch.nn as nn
-
+#import pandas as pd
 from sklearn.pipeline import make_pipeline
 from tensorboardX import SummaryWriter
 from sklearn.metrics import confusion_matrix
@@ -54,9 +54,8 @@ cc = "lustre" in current_directory
 if cuda:
     model_name = sys.argv[1]
     part = sys.argv[2]
-    optimizer_lr = float(sys.argv[3]) 
-    bsize = int(sys.argv[4])  # Convert batch size to an integer
-    target = sys.argv[5]
+    bsize = 16  
+    target = sys.argv[3]
     if torch.cuda.is_available():
         device = torch.device('cuda')  # PyTorch will use the default GPU
         torch.backends.cudnn.benchmark = True
@@ -87,9 +86,9 @@ elif "mplab" in current_directory:
     bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
     log_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/logs'
 else:
-    model_name = "shallowFBCSPNetRegression" #set the model to use. also determines dl and kind of task
-    part = 'between'# 'between' or 'within' participant
-    target = "intensity"
+    model_name = "shallowFBCSPNetClassification" #set the model to use. also determines dl and kind of task
+    part = 'within'# 'between' or 'within' participant
+    target = "3_classes"
     optimizer_lr = 0.000625
     bsize = 16
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
@@ -124,7 +123,6 @@ else:
     print("Number of epochs after removal:", len(epochs))
     X = epochs.get_data()
     X = X*1e6 # Convert from V to uV
-    # TODO check if this makes sense for non-deep models. Probably not?
     for epo in tqdm(range(X.shape[0]), desc='Normalizing data'): # Loop epochs
         X[epo, :, :] = exponential_moving_standardize(X[epo, :, :], factor_new=0.001, init_block_size=None) # Normalize the data
 
@@ -140,8 +138,6 @@ n_chans = len(epochs.info['ch_names'])
 input_window_samples=X.shape[2]
 if target == "3_classes" or target =="5_classes":
     n_classes_clas=int(target[0])
-
-
 
 
 #__________________________________________________________________
@@ -481,6 +477,9 @@ elif task == 'regression':
         X = epochs[epochs.metadata["task"].isin(selected_tasks)]
         y = epochs.metadata["intensity"].values 
 
+print("groups:", len(groups))
+print("X:",len(X))
+print("y:",len(y))
 # Get writer for tensorboard
 writer = SummaryWriter(log_dir=opj(log_dir, model_name, part))
 
@@ -511,7 +510,7 @@ if dl == True and part == "within":
     # Write the columns to a CSV file
     with open(output_file, 'w', newline='') as csvfile:
         csvwriter = csv.writer(csvfile, delimiter=',')
-        csvwriter.writerow(["Mean Score", "Test Score", "True Label", "Predicted Label"])  # Write header
+        csvwriter.writerow(["Mean Score", "Participant Scores", "True Label", "Predicted Label"])  # Write header
         csvwriter.writerows(columns)  # Write columns as rows
 
 elif dl == True and part == "between":
@@ -571,5 +570,43 @@ if task == 'classification':
     output_file = os.path.join(output_dir, f"{part}.png")
     plt.savefig(output_file)
 
+"""import pandas as pd
+
+# Load the CSV file that contains the True and Predicted Labels
+csv_file = f"results{model_name}/{part}.csv"  
+df = pd.read_csv(csv_file)
+
+# Get unique labels from the "True Label" column
+unique_labels = df["True Label"].unique()
+
+# Compute the confusion matrix
+cm = confusion_matrix(df["True Label"], df["Predicted Label"])
+
+# Create a mapping from the index in unique_labels to the actual label
+label_mapping = {i: label for i, label in enumerate(unique_labels)}
+
+# Plot confusion matrix with correct label mapping
+fig, ax = plt.subplots(1)
+im = ax.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
+ax.set(title="Confusion matrix")
+
+# Set x and y axis tick labels based on unique labels from CSV using label_mapping
+tick_marks = np.arange(len(unique_labels))
+plt.xticks(tick_marks, [label_mapping[i] for i in range(len(unique_labels))], rotation=45)
+plt.yticks(tick_marks, [label_mapping[i] for i in range(len(unique_labels))])
+
+fig.colorbar(im)
+fig.tight_layout(pad=1.5)
+ax.set(ylabel="True label", xlabel="Predicted label")
+
+# Save the confusion matrix plot as an image file
+output_dir = f"images/confusion_matrix{model_name}"
+os.makedirs(output_dir, exist_ok=True)  # Create the directory if it doesn't exist
+output_file = os.path.join(output_dir, f"{part}.png")
+plt.savefig(output_file)
+
+# Show the plot
+plt.show()
+"""
 # Run this in Terminal to see tensorboard
 #tensorboard --logdir /home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/logs/deep4netClassification/between --port 6007
