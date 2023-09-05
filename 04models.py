@@ -484,16 +484,6 @@ print("y:",len(y))
 # Get writer for tensorboard
 writer = SummaryWriter(log_dir=opj(log_dir, model_name, part))
 
-# Train the EEG model using cross-validation
-if dl == False and part == 'within':
-    mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_within(model, X, y, parameters, task=task, nfolds=10, n_inner_splits=5, groups=groups, writer=writer)
-if dl == False and part == 'between':
-    mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_between(model, X, y, parameters = parameters, task =task, nfolds=10, n_inner_splits=5, groups=groups, writer=writer)
-if dl == True and part == 'within':
-    mean_score, all_true_labels, all_predictions, participants_scores = trainingDL_within(model, X, y, task=task, groups=groups, writer=writer, nfolds=3)
-if dl == True and part == 'between':
-    mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task=task, nfolds=3, groups=groups, writer=writer)
-
 # Get writer for tensorboard
 writer = SummaryWriter(log_dir=opj(log_dir, model_name, part))
 
@@ -505,7 +495,7 @@ if dl == False and part == 'between':
 if dl == True and part == 'within':
     mean_score, all_true_labels, all_predictions, participants_scores = trainingDL_within(model, X, y, task=task, groups=groups, writer=writer, nfolds=2)
 if dl == True and part == 'between':
-    mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task=task, nfolds=3, groups=groups, writer=writer)
+    mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task=task, nfolds=2, groups=groups, writer=writer)
 
 # Close the SummaryWriter when done
 writer.close()
@@ -533,7 +523,7 @@ elif dl == True and part == "between":
     # Create a DataFrame
     data = pd.DataFrame({
         "Mean Score": [mean_score] + ["_"] * (data_length - 1),
-        "Participant Scores": [score_test] + ["_"] * (data_length - 1),
+        "Test Scores": [score_test] + ["_"] * (data_length - len(score_test)),
         "True Label": all_true_labels,
         "Predicted Label": all_predictions
     })
@@ -546,7 +536,7 @@ elif dl == False:
     # Create a DataFrame
     data = pd.DataFrame({
         "Mean Score": [mean_score] + ["_"] * (data_length - 1),
-        "Participant Scores": [score_test] + ["_"] * (data_length - 1),
+        "Test Scores": [score_test] + ["_"] * (data_length - len(score_test)),
         "Most common best Parameter": [most_common_best_param] + ["_"] * (data_length - 1),
         "True Label": all_true_labels,
         "Predicted Label": all_predictions
@@ -557,38 +547,8 @@ elif dl == False:
 
 # For classification, build a confusion matrix
 if task == 'classification':
-    """if target == "5_classes":
-        target_names = ["auditory", "auditoryrate", "rest", "thermal", "thermalrate"]
-    elif target  == "3_classes":
-        target_names = ["auditory", "rest", "thermal"]
-
-    # Convert the lists to numpy arrays
-    all_true_labels = np.array(all_true_labels)
-    all_predictions = np.array(all_predictions)
-
-    # Compute the confusion matrix
-    cm = confusion_matrix(all_true_labels, all_predictions)
-    cm_normalized = cm.astype(float) / cm.sum(axis=1)[:, np.newaxis]
-
-    # Plot confusion matrix
-    fig, ax = plt.subplots(1)
-    im = ax.imshow(cm_normalized, interpolation="nearest", cmap=plt.cm.Blues)
-    ax.set(title="Normalized Confusion matrix")
-    fig.colorbar(im)
-    tick_marks = np.arange(len(target_names))
-    plt.xticks(tick_marks, target_names, rotation=45)
-    plt.yticks(tick_marks, target_names)
-    fig.tight_layout(pad=1.5)
-    ax.set(ylabel="True label", xlabel="Predicted label")
-
-    # Save the confusion matrix plot as an image file
-    output_dir = f"images/confusion_matrix{model_name}"
-    os.makedirs(output_dir, exist_ok=True)  # Create the directory if it doesn't exist
-    output_file = os.path.join(output_dir, f"{part}.png")
-    plt.savefig(output_file)"""
-
     # Load data from the CSV file
-    data = pd.read_csv(output_file)  # Load the CSV file you created
+    data = pd.read_csv(output_file)  
     true_labels = data['True Label']
     predicted_labels = data['Predicted Label']
 
@@ -616,6 +576,26 @@ if task == 'classification':
     plt.yticks(tick_marks, target_names)
     fig.tight_layout(pad=1.5)
     ax.set(ylabel="True label", xlabel="Predicted label")
+
+    # Add a legend with custom labels
+    if target == "5_classes":
+        target_names = ["auditory", "auditoryrate", "rest", "thermal", "thermalrate"]
+        legend_labels = {
+            0: 'auditory',
+            1: "auditoryrate",
+            2: 'rest',
+            3: 'thermal',
+            4: "thermalrate"
+        }
+    elif target  == "3_classes":
+        legend_labels = {
+            0: 'auditory',
+            1: 'rest',
+            2: 'thermal'
+        }
+
+    legend_elements = [plt.Line2D([0], [0], marker='o', color='w', label=f"{label}: {text}", markersize=10, markerfacecolor='b') for label, text in legend_labels.items()]
+    ax.legend(handles=legend_elements, title="Legend")
 
     # Save the confusion matrix plot as an image file
     output_dir = f"images/confusion_matrix{model_name}"
