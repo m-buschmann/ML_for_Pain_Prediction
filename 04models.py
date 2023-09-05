@@ -17,7 +17,7 @@ from skorch.callbacks import Checkpoint, EarlyStopping, LRScheduler, ProgressBar
 from train_script_between_part import trainingDL_between, training_nested_cv_between
 from train_script_within_part import training_nested_cv_within, trainingDL_within
 import torch.nn as nn
-
+import pandas as pd
 from sklearn.pipeline import make_pipeline
 from tensorboardX import SummaryWriter
 from sklearn.metrics import confusion_matrix
@@ -54,9 +54,8 @@ cc = "lustre" in current_directory
 if cuda:
     model_name = sys.argv[1]
     part = sys.argv[2]
-    optimizer_lr = float(sys.argv[3]) 
     bsize = 16  
-    target = sys.argv[5]
+    target = sys.argv[3]
     if torch.cuda.is_available():
         device = torch.device('cuda')  # PyTorch will use the default GPU
         torch.backends.cudnn.benchmark = True
@@ -139,8 +138,6 @@ n_chans = len(epochs.info['ch_names'])
 input_window_samples=X.shape[2]
 if target == "3_classes" or target =="5_classes":
     n_classes_clas=int(target[0])
-
-
 
 
 #__________________________________________________________________
@@ -267,7 +264,7 @@ elif model_name == "deep4netClassification":
         optimizer__lr = 0.0001,
         optimizer__weight_decay = 0.5 * 0.001, # As recommended on braindecode.org
         batch_size = bsize,
-        max_epochs=50,
+        max_epochs=10,
         iterator_valid__shuffle=False,
         iterator_train__shuffle=True,
         device=device,
@@ -325,7 +322,7 @@ elif model_name == "deep4netRegression":
         optimizer__lr = 0.00001,
         optimizer__weight_decay = 0, # As recommended on braindecode.org
         batch_size = bsize,
-        max_epochs=50,
+        max_epochs=10,
         iterator_valid__shuffle=False,
         iterator_train__shuffle=True,
         device=device,
@@ -371,7 +368,7 @@ elif model_name == "shallowFBCSPNetClassification":
         optimizer__lr = 0.00001,
         optimizer__weight_decay = 0, # As recommended on braindecode.org
         batch_size = bsize,
-        max_epochs=50,
+        max_epochs=10,
         iterator_valid__shuffle=False,
         iterator_train__shuffle=True,
         device=device,
@@ -430,7 +427,7 @@ elif model_name == "shallowFBCSPNetRegression":
         optimizer__lr = 0.001,
         optimizer__weight_decay = 0, # As recommended on braindecode.org
         batch_size = bsize,
-        max_epochs=50,
+        max_epochs=10,
         iterator_valid__shuffle=False,
         iterator_train__shuffle=True,
         device=device,
@@ -480,6 +477,23 @@ elif task == 'regression':
         X = epochs[epochs.metadata["task"].isin(selected_tasks)]
         y = epochs.metadata["intensity"].values 
 
+print("groups:", len(groups))
+print("X:",len(X))
+print("y:",len(y))
+
+# Get writer for tensorboard
+writer = SummaryWriter(log_dir=opj(log_dir, model_name, part))
+
+# Train the EEG model using cross-validation
+if dl == False and part == 'within':
+    mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_within(model, X, y, parameters, task=task, nfolds=10, n_inner_splits=5, groups=groups, writer=writer)
+if dl == False and part == 'between':
+    mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_between(model, X, y, parameters = parameters, task =task, nfolds=10, n_inner_splits=5, groups=groups, writer=writer)
+if dl == True and part == 'within':
+    mean_score, all_true_labels, all_predictions, participants_scores = trainingDL_within(model, X, y, task=task, groups=groups, writer=writer, nfolds=3)
+if dl == True and part == 'between':
+    mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task=task, nfolds=3, groups=groups, writer=writer)
+
 # Get writer for tensorboard
 writer = SummaryWriter(log_dir=opj(log_dir, model_name, part))
 
@@ -501,33 +515,49 @@ output_dir = f"results{model_name}"
 os.makedirs(output_dir, exist_ok=True)  # Create the directory if it doesn't exist
 output_file = os.path.join(output_dir, f"{part}.csv")
 
-if dl == True:
-    rows = zip([mean_score], [score_test], [all_true_labels], [all_predictions])
+# Determine the length of the data
+data_length = len(all_true_labels)
+if dl == True and part == "within":
+    # Create a DataFrame
+    data = pd.DataFrame({
+        "Mean Score": [mean_score] + ["_"] * (data_length - 1),
+        "Participant Scores": participants_scores + ["_"] * (data_length - len(participants_scores)),
+        "True Label": all_true_labels,
+        "Predicted Label": all_predictions
+    })
 
-    # Transpose the rows to columns
-    columns = list(zip(*rows))
+    # Write the DataFrame to a CSV file
+    data.to_csv(output_file, index=False)
 
-    # Write the columns to a CSV file
-    with open(output_file, 'w', newline='') as csvfile:
-        csvwriter = csv.writer(csvfile, delimiter=',')
-        csvwriter.writerow(["Mean Score", "Test Score", "True Label", "Predicted Label"])  # Write header
-        csvwriter.writerows(columns)  # Write columns as rows
+elif dl == True and part == "between":
+    # Create a DataFrame
+    data = pd.DataFrame({
+        "Mean Score": [mean_score] + ["_"] * (data_length - 1),
+        "Participant Scores": [score_test] + ["_"] * (data_length - 1),
+        "True Label": all_true_labels,
+        "Predicted Label": all_predictions
+    })
+
+    # Write the DataFrame to a CSV file
+    data.to_csv(output_file, index=False)
+
 
 elif dl == False:
-    rows = zip([mean_score], [score_test], [most_common_best_param], [all_true_labels], [all_predictions])
+    # Create a DataFrame
+    data = pd.DataFrame({
+        "Mean Score": [mean_score] + ["_"] * (data_length - 1),
+        "Participant Scores": [score_test] + ["_"] * (data_length - 1),
+        "Most common best Parameter": [most_common_best_param] + ["_"] * (data_length - 1),
+        "True Label": all_true_labels,
+        "Predicted Label": all_predictions
+    })
 
-    # Transpose the rows to columns
-    columns = list(zip(*rows))
-
-    # Write the columns to a CSV file
-    with open(output_file, 'w', newline='') as csvfile:
-        csvwriter = csv.writer(csvfile)
-        csvwriter.writerow(["Mean Score", "Test Score", "Best Parameters", "True Label", "Predicted Label"])  # Write header
-        csvwriter.writerows(columns)  # Write columns as rows
+    # Write the DataFrame to a CSV file
+    data.to_csv(output_file, index=False)
 
 # For classification, build a confusion matrix
 if task == 'classification':
-    if target == "5_classes":
+    """if target == "5_classes":
         target_names = ["auditory", "auditoryrate", "rest", "thermal", "thermalrate"]
     elif target  == "3_classes":
         target_names = ["auditory", "rest", "thermal"]
@@ -538,6 +568,42 @@ if task == 'classification':
 
     # Compute the confusion matrix
     cm = confusion_matrix(all_true_labels, all_predictions)
+    cm_normalized = cm.astype(float) / cm.sum(axis=1)[:, np.newaxis]
+
+    # Plot confusion matrix
+    fig, ax = plt.subplots(1)
+    im = ax.imshow(cm_normalized, interpolation="nearest", cmap=plt.cm.Blues)
+    ax.set(title="Normalized Confusion matrix")
+    fig.colorbar(im)
+    tick_marks = np.arange(len(target_names))
+    plt.xticks(tick_marks, target_names, rotation=45)
+    plt.yticks(tick_marks, target_names)
+    fig.tight_layout(pad=1.5)
+    ax.set(ylabel="True label", xlabel="Predicted label")
+
+    # Save the confusion matrix plot as an image file
+    output_dir = f"images/confusion_matrix{model_name}"
+    os.makedirs(output_dir, exist_ok=True)  # Create the directory if it doesn't exist
+    output_file = os.path.join(output_dir, f"{part}.png")
+    plt.savefig(output_file)"""
+
+    # Load data from the CSV file
+    data = pd.read_csv(output_file)  # Load the CSV file you created
+    true_labels = data['True Label']
+    predicted_labels = data['Predicted Label']
+
+    # Extract unique target names from the 'True Label' column
+    target_names = data['True Label'].unique()
+
+    # Create a confusion matrix
+    confusion = confusion_matrix(true_labels, predicted_labels)
+
+    print("Confusion Matrix:")
+    print(confusion)
+
+    # Plot and save the confusion matrix
+    # Compute the confusion matrix
+    cm = confusion_matrix(true_labels, predicted_labels)
     cm_normalized = cm.astype(float) / cm.sum(axis=1)[:, np.newaxis]
 
     # Plot confusion matrix

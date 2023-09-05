@@ -51,6 +51,11 @@ def trainingDL_between(model, X, y, task = 'regression', nfolds=10, groups=None,
         label_encoder = LabelEncoder()
         y = label_encoder.fit_transform(y)
         y = torch.tensor(y, dtype=torch.int64)
+        # Print the mapping between integer labels and original labels
+        label_mapping = dict(zip(np.unique(y), label_encoder.classes_))
+        print("Label mapping:")
+        for integer_label, original_label in label_mapping.items():
+            print(f"{integer_label} -> {original_label}")        
     else:
         # Convert numerical labels to float
         y = torch.tensor(y, dtype=torch.float32)

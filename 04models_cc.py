@@ -502,23 +502,13 @@ output_dir = f"results{model_name}"
 os.makedirs(output_dir, exist_ok=True)  # Create the directory if it doesn't exist
 output_file = os.path.join(output_dir, f"{part}.csv")
 
+# Determine the length of the data
+data_length = len(all_true_labels)
 if dl == True and part == "within":
-    """rows = zip([mean_score], [participants_scores], [all_true_labels], [all_predictions])
-
-    # Transpose the rows to columns
-    columns = list(zip(*rows))
-
-    # Write the columns to a CSV file
-    with open(output_file, 'w', newline='') as csvfile:
-        csvwriter = csv.writer(csvfile, delimiter=',')
-        csvwriter.writerow(["Mean Score", "Participant Scores", "True Label", "Predicted Label"])  # Write header
-        csvwriter.writerows(columns)  # Write columns as rows"""
-
-
     # Create a DataFrame
     data = pd.DataFrame({
-        "Mean Score": mean_score,
-        "Participant Score": participants_scores,
+        "Mean Score": [mean_score] + ["_"] * (data_length - 1),
+        "Participant Scores": participants_scores + ["_"] * (data_length - len(participants_scores)),
         "True Label": all_true_labels,
         "Predicted Label": all_predictions
     })
@@ -527,29 +517,30 @@ if dl == True and part == "within":
     data.to_csv(output_file, index=False)
 
 elif dl == True and part == "between":
-    rows = zip([mean_score], [score_test], [all_true_labels], [all_predictions])
+    # Create a DataFrame
+    data = pd.DataFrame({
+        "Mean Score": [mean_score] + ["_"] * (data_length - 1),
+        "Participant Scores": [score_test] + ["_"] * (data_length - 1),
+        "True Label": all_true_labels,
+        "Predicted Label": all_predictions
+    })
 
-    # Transpose the rows to columns
-    columns = list(zip(*rows))
-
-    # Write the columns to a CSV file
-    with open(output_file, 'w', newline='') as csvfile:
-        csvwriter = csv.writer(csvfile, delimiter=',')
-        csvwriter.writerow(["Mean Score", "Test Score", "True Label", "Predicted Label"])  # Write header
-        csvwriter.writerows(columns)  # Write columns as rows
+    # Write the DataFrame to a CSV file
+    data.to_csv(output_file, index=False)
 
 
 elif dl == False:
-    rows = zip([mean_score], [score_test], [most_common_best_param], [all_true_labels], [all_predictions])
+    # Create a DataFrame
+    data = pd.DataFrame({
+        "Mean Score": [mean_score] + ["_"] * (data_length - 1),
+        "Participant Scores": [score_test] + ["_"] * (data_length - 1),
+        "Most common best Parameter": [most_common_best_param] + ["_"] * (data_length - 1),
+        "True Label": all_true_labels,
+        "Predicted Label": all_predictions
+    })
 
-    # Transpose the rows to columns
-    columns = list(zip(*rows))
-
-    # Write the columns to a CSV file
-    with open(output_file, 'w', newline='') as csvfile:
-        csvwriter = csv.writer(csvfile)
-        csvwriter.writerow(["Mean Score", "Test Score", "Best Parameters", "True Label", "Predicted Label"])  # Write header
-        csvwriter.writerows(columns)  # Write columns as rows
+    # Write the DataFrame to a CSV file
+    data.to_csv(output_file, index=False)
 
 # For classification, build a confusion matrix
 if task == 'classification':
@@ -582,7 +573,6 @@ if task == 'classification':
     os.makedirs(output_dir, exist_ok=True)  # Create the directory if it doesn't exist
     output_file = os.path.join(output_dir, f"{part}.png")
     plt.savefig(output_file)"""
-
 
     # Load data from the CSV file
     data = pd.read_csv(output_file)  # Load the CSV file you created
@@ -620,43 +610,5 @@ if task == 'classification':
     output_file = os.path.join(output_dir, f"{part}.png")
     plt.savefig(output_file)
 
-"""import pandas as pd
-
-# Load the CSV file that contains the True and Predicted Labels
-csv_file = f"results{model_name}/{part}.csv"  
-df = pd.read_csv(csv_file)
-
-# Get unique labels from the "True Label" column
-unique_labels = df["True Label"].unique()
-
-# Compute the confusion matrix
-cm = confusion_matrix(df["True Label"], df["Predicted Label"])
-
-# Create a mapping from the index in unique_labels to the actual label
-label_mapping = {i: label for i, label in enumerate(unique_labels)}
-
-# Plot confusion matrix with correct label mapping
-fig, ax = plt.subplots(1)
-im = ax.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
-ax.set(title="Confusion matrix")
-
-# Set x and y axis tick labels based on unique labels from CSV using label_mapping
-tick_marks = np.arange(len(unique_labels))
-plt.xticks(tick_marks, [label_mapping[i] for i in range(len(unique_labels))], rotation=45)
-plt.yticks(tick_marks, [label_mapping[i] for i in range(len(unique_labels))])
-
-fig.colorbar(im)
-fig.tight_layout(pad=1.5)
-ax.set(ylabel="True label", xlabel="Predicted label")
-
-# Save the confusion matrix plot as an image file
-output_dir = f"images/confusion_matrix{model_name}"
-os.makedirs(output_dir, exist_ok=True)  # Create the directory if it doesn't exist
-output_file = os.path.join(output_dir, f"{part}.png")
-plt.savefig(output_file)
-
-# Show the plot
-plt.show()
-"""
 # Run this in Terminal to see tensorboard
 #tensorboard --logdir /home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/logs/deep4netClassification/between --port 6007
