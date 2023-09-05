@@ -17,7 +17,7 @@ from skorch.callbacks import Checkpoint, EarlyStopping, LRScheduler, ProgressBar
 from train_script_between_part import trainingDL_between, training_nested_cv_between
 from train_script_within_part import training_nested_cv_within, trainingDL_within
 import torch.nn as nn
-#import pandas as pd
+import pandas as pd
 from sklearn.pipeline import make_pipeline
 from tensorboardX import SummaryWriter
 from sklearn.metrics import confusion_matrix
@@ -513,10 +513,7 @@ if dl == True and part == "within":
         csvwriter = csv.writer(csvfile, delimiter=',')
         csvwriter.writerow(["Mean Score", "Participant Scores", "True Label", "Predicted Label"])  # Write header
         csvwriter.writerows(columns)  # Write columns as rows"""
-    
-    import pandas as pd
 
-    # Assuming mean_score, participants_scores, all_true_labels, and all_predictions are lists or arrays
 
     # Create a DataFrame
     data = pd.DataFrame({
@@ -556,7 +553,7 @@ elif dl == False:
 
 # For classification, build a confusion matrix
 if task == 'classification':
-    if target == "5_classes":
+    """if target == "5_classes":
         target_names = ["auditory", "auditoryrate", "rest", "thermal", "thermalrate"]
     elif target  == "3_classes":
         target_names = ["auditory", "rest", "thermal"]
@@ -567,6 +564,43 @@ if task == 'classification':
 
     # Compute the confusion matrix
     cm = confusion_matrix(all_true_labels, all_predictions)
+    cm_normalized = cm.astype(float) / cm.sum(axis=1)[:, np.newaxis]
+
+    # Plot confusion matrix
+    fig, ax = plt.subplots(1)
+    im = ax.imshow(cm_normalized, interpolation="nearest", cmap=plt.cm.Blues)
+    ax.set(title="Normalized Confusion matrix")
+    fig.colorbar(im)
+    tick_marks = np.arange(len(target_names))
+    plt.xticks(tick_marks, target_names, rotation=45)
+    plt.yticks(tick_marks, target_names)
+    fig.tight_layout(pad=1.5)
+    ax.set(ylabel="True label", xlabel="Predicted label")
+
+    # Save the confusion matrix plot as an image file
+    output_dir = f"images/confusion_matrix{model_name}"
+    os.makedirs(output_dir, exist_ok=True)  # Create the directory if it doesn't exist
+    output_file = os.path.join(output_dir, f"{part}.png")
+    plt.savefig(output_file)"""
+
+
+    # Load data from the CSV file
+    data = pd.read_csv(output_file)  # Load the CSV file you created
+    true_labels = data['True Label']
+    predicted_labels = data['Predicted Label']
+
+    # Extract unique target names from the 'True Label' column
+    target_names = data['True Label'].unique()
+
+    # Create a confusion matrix
+    confusion = confusion_matrix(true_labels, predicted_labels)
+
+    print("Confusion Matrix:")
+    print(confusion)
+
+    # Plot and save the confusion matrix
+    # Compute the confusion matrix
+    cm = confusion_matrix(true_labels, predicted_labels)
     cm_normalized = cm.astype(float) / cm.sum(axis=1)[:, np.newaxis]
 
     # Plot confusion matrix
