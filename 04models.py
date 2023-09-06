@@ -25,6 +25,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm
 import csv
+import json
 import os
 from sklearn.linear_model import ElasticNet
 import sys
@@ -86,9 +87,9 @@ elif "mplab" in current_directory:
     bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
     log_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/logs'
 else:
-    model_name = "SGD" #set the model to use. also determines dl and kind of task
-    part = 'between'# 'between' or 'within' participant
-    target = "intensity"
+    model_name = "RFClassifier" #set the model to use. also determines dl and kind of task
+    part = 'within'# 'between' or 'within' participant
+    target = "3_classes"
     optimizer_lr = 0.000625
     bsize = 16
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
@@ -509,7 +510,7 @@ writer = SummaryWriter(log_dir=opj(log_dir, model_name, part))
 
 # Train the EEG model using cross-validation
 if dl == False and part == 'within':
-    mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_within(model, X, y, parameters, task=task, nfolds=3, n_inner_splits=2, groups=groups, writer=writer)
+    mean_score, all_true_labels, all_predictions, participant_scores, most_common_best_param = training_nested_cv_within(model, X, y, parameters, task=task, nfolds=3, n_inner_splits=2, groups=groups, writer=writer)
 if dl == False and part == 'between':
     mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_between(model, X, y, parameters = parameters, task =task, nfolds=3, n_inner_splits=2, groups=groups, writer=writer)
 if dl == True and part == 'within':
@@ -552,12 +553,35 @@ elif dl == True and part == "between":
     data.to_csv(output_file, index=False)
 
 
-elif dl == False:
+elif dl == False and part == "between":
+    # Convert the dictionary to a JSON string and remove commas
+    most_common_best_param_json = json.dumps(most_common_best_param, separators=(',', ':'))
+    # Replace commas with semicolons
+    most_common_best_param_json = most_common_best_param_json.replace(',', ';')
+    
     # Create a DataFrame
     data = pd.DataFrame({
         "Mean Score": [mean_score] + ["_"] * (data_length - 1),
-        "Test Scores": [score_test] + ["_"] * (data_length - len(score_test)),
-        "Most common best Parameter": [most_common_best_param] + ["_"] * (data_length - 1),
+        "Test Scores": score_test + ["_"] * (data_length - len(score_test)),
+        "Most common best Parameter": [most_common_best_param_json] + ["_"] * (data_length - 1),
+        "True Label": all_true_labels,
+        "Predicted Label": all_predictions
+    })
+
+    # Write the DataFrame to a CSV file
+    data.to_csv(output_file, index=False)
+
+elif dl == False and part == "within":
+    # Convert the dictionary to a JSON string and remove commas
+    most_common_best_param_json = json.dumps(most_common_best_param, separators=(',', ':'))
+    # Replace commas with semicolons
+    most_common_best_param_json = most_common_best_param_json.replace(',', ';')
+    
+    # Create a DataFrame
+    data = pd.DataFrame({
+        "Mean Score": [mean_score] + ["_"] * (data_length - 1),
+        "Participant Mean Scores": participant_scores + ["_"] * (data_length - len(participant_scores)),
+        "Most common best Parameter": [most_common_best_param_json] + ["_"] * (data_length - 1),
         "True Label": all_true_labels,
         "Predicted Label": all_predictions
     })

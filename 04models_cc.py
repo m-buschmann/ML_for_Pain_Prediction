@@ -509,7 +509,7 @@ writer = SummaryWriter(log_dir=opj(log_dir, model_name, part))
 
 # Train the EEG model using cross-validation
 if dl == False and part == 'within':
-    mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_within(model, X, y, parameters, task=task, nfolds=10, n_inner_splits=5, groups=groups, writer=writer)
+    mean_score, all_true_labels, all_predictions, participant_scores, most_common_best_param = training_nested_cv_within(model, X, y, parameters, task=task, nfolds=10, n_inner_splits=5, groups=groups, writer=writer)
 if dl == False and part == 'between':
     mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_between(model, X, y, parameters = parameters, task =task, nfolds=10, n_inner_splits=5, groups=groups, writer=writer)
 if dl == True and part == 'within':
@@ -552,12 +552,35 @@ elif dl == True and part == "between":
     data.to_csv(output_file, index=False)
 
 
-elif dl == False:
+elif dl == False and part == "between":
+    # Convert the dictionary to a JSON string and remove commas
+    most_common_best_param_json = json.dumps(most_common_best_param, separators=(',', ':'))
+    # Replace commas with semicolons
+    most_common_best_param_json = most_common_best_param_json.replace(',', ';')
+    
     # Create a DataFrame
     data = pd.DataFrame({
         "Mean Score": [mean_score] + ["_"] * (data_length - 1),
-        "Test Scores": [score_test] + ["_"] * (data_length - len(score_test)),
-        "Most common best Parameter": [most_common_best_param] + ["_"] * (data_length - 1),
+        "Test Scores": score_test + ["_"] * (data_length - len(score_test)),
+        "Most common best Parameter": [most_common_best_param_json] + ["_"] * (data_length - 1),
+        "True Label": all_true_labels,
+        "Predicted Label": all_predictions
+    })
+
+    # Write the DataFrame to a CSV file
+    data.to_csv(output_file, index=False)
+
+elif dl == False and part == "within":
+    # Convert the dictionary to a JSON string and remove commas
+    most_common_best_param_json = json.dumps(most_common_best_param, separators=(',', ':'))
+    # Replace commas with semicolons
+    most_common_best_param_json = most_common_best_param_json.replace(',', ';')
+    
+    # Create a DataFrame
+    data = pd.DataFrame({
+        "Mean Score": [mean_score] + ["_"] * (data_length - 1),
+        "Participant Mean Scores": participant_scores + ["_"] * (data_length - len(participant_scores)),
+        "Most common best Parameter": [most_common_best_param_json] + ["_"] * (data_length - 1),
         "True Label": all_true_labels,
         "Predicted Label": all_predictions
     })

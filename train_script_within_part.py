@@ -213,10 +213,9 @@ def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfol
             best_params_fold = clf_fold.best_params_
             best_params_counts.update([str(best_params_fold)])
             best_params_per_fold[participant] = best_params_fold
-
+            print(best_params_fold)
 
             y_pred[test_idx] = clf_fold.predict(X_test).flatten()
-
 
             if task == 'regression':
                 fold_scores.append(np.sqrt(mean_squared_error(y_test, y_pred[test_idx])))
@@ -269,4 +268,4 @@ def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfol
     print("True Labels (First 10 elements):", all_true_labels[:10])
     print("Predictions (First 10 elements):", all_predictions[:10])
     writer.close()
-    return mean_score, all_true_labels, all_predictions, score_test, most_common_best_param
+    return mean_score, all_true_labels, all_predictions, participant_scores, most_common_best_param
