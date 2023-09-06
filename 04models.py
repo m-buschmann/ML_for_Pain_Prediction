@@ -63,7 +63,7 @@ if cuda:
         cuda = False
         device = torch.device('cpu')
 
-    bidsroot = '/lustre04/scratch/mabus103/epoched_data/cleaned_epo.fif'
+    bidsroot = '/lustre04/scratch/mabus103/epoched_data/filtered_epo.fif'
     log_dir=f'/lustre04/scratch/mabus103/logs'
     #log_dir=f'/lustre04/scratch/mabus103/ML_for_Pain_Prediction/logs'
 elif 'media/mp' in current_directory: #MP's local machine
@@ -99,18 +99,24 @@ data_path = opj(bidsroot)
 # Load epochs oject
 epochs = mne.read_epochs(data_path, preload=True)
 
+# Get the metadata DataFrame from the Epochs object
+metadata_df = epochs.metadata
 
 # Preprocess the data
 # epochs.filter(4, 80)
+selected_indices = []
 if cc:
-    loaded_data = np.load('preprocessed_data.npz')  # For .npz format
+    loaded_data = np.load('normalized_data.npz')  # For .npz format
     X = loaded_data['X']
+
+    # Load the selected indices from the text file
+    with open("selected_indices.txt", "r") as f:
+        selected_indices = [int(line.strip()) for line in f]
+    
+    epochs = epochs[selected_indices]
 else:    
     #remove epochs above threshold
     threshold = 20
-
-    # Get the metadata DataFrame from the Epochs object
-    metadata_df = epochs.metadata
 
     # Get indices of epochs that meet the threshold
     selected_indices = np.where(metadata_df["diff_intensity"] <= abs(threshold))[0]
@@ -457,25 +463,32 @@ print(model_name, part)
 
 #_____________________________________________________________________-
 # Training
+# Filter the metadata DataFrame based on the selected indices
+filtered_metadata = metadata_df.iloc[selected_indices]
 
 # Set y (and X)
 if task == 'classification':
     target == '3_classes' #take this out later! Just for now, to avoid mix up
-    epochs.metadata['task'].astype(str)
+    filtered_metadata['task'].astype(str)
     if target == '3_classes':
-        y = [i.replace('rate', '') for i in epochs.metadata["task"].values]
+        y = [i.replace('rate', '') for i in filtered_metadata["task"].values]
         y = np.array(y)
     elif target == '5_classes':
-        y = epochs.metadata["task"].values
+        y = filtered_metadata["task"].values
 elif task == 'regression':
     target == 'intensity' #take this out later! Just for now, to avoid mix up
     if target == 'rating':
-        y = epochs.metadata["rating"].values 
+        y = filtered_metadata["rating"].values 
     elif target == 'intensity':
         #only use thermal task for pain intensity
         selected_tasks = ["thermal", "thermalrate"]
-        X = epochs[epochs.metadata["task"].isin(selected_tasks)]
-        y = epochs.metadata["intensity"].values 
+        X = epochs[filtered_metadata["task"].isin(selected_tasks)]
+        y = filtered_metadata["intensity"].values 
+
+
+
+# Extract the corresponding y and groups values
+groups = filtered_metadata["participant_id"].values
 
 print("groups:", len(groups))
 print("X:",len(X))

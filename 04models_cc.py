@@ -99,12 +99,22 @@ data_path = opj(bidsroot)
 # Load epochs oject
 epochs = mne.read_epochs(data_path, preload=True)
 
+# Get the metadata DataFrame from the Epochs object
+metadata_df = epochs.metadata
 
 # Preprocess the data
 # epochs.filter(4, 80)
+selected_indices = []
 if cc:
     loaded_data = np.load('preprocessed_data.npz')  # For .npz format
     X = loaded_data['X']
+
+    # Load the selected indices from the text file
+    with open("selected_indices.txt", "r") as f:
+        selected_indices = [int(line.strip()) for line in f]
+    
+    epochs = epochs[selected_indices]
+
 else:    
     #remove epochs above threshold
     threshold = 20
@@ -477,6 +487,7 @@ elif task == 'regression':
         selected_tasks = ["thermal", "thermalrate"]
         X = epochs[epochs.metadata["task"].isin(selected_tasks)]
         y = epochs.metadata["intensity"].values 
+
 
 print("groups:", len(groups))
 print("X:",len(X))
