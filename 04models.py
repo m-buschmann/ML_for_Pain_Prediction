@@ -77,8 +77,8 @@ elif 'media/mp' in current_directory: #MP's local machine
 
 elif "mplab" in current_directory:
     model_name = "SGD" #set the model to use. also determines dl and kind of task
-    part = 'between' # 'between' or 'within' participant
-    target = "3_classes"
+    part = 'within' # 'between' or 'within' participant
+    target = "intensity"
     optimizer_lr = 0.000625
     bsize = 16
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
@@ -86,9 +86,9 @@ elif "mplab" in current_directory:
     bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
     log_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/logs'
 else:
-    model_name = "shallowFBCSPNetClassification" #set the model to use. also determines dl and kind of task
-    part = 'within'# 'between' or 'within' participant
-    target = "3_classes"
+    model_name = "SGD" #set the model to use. also determines dl and kind of task
+    part = 'between'# 'between' or 'within' participant
+    target = "intensity"
     optimizer_lr = 0.000625
     bsize = 16
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
@@ -105,6 +105,21 @@ if cc:
     # load already normalized X
     loaded_data = np.load('normalized_X.npz')  # For .npz format
     X = loaded_data['X']
+
+    # Only use thermal for regression
+    if target == "intensity" or target == "rating":
+        # Load the metadata information from the original epochs object
+        metadata_df = epochs.metadata
+
+        # Find the indices where the task is "thermal" or "thermalrate"
+        thermal_indices = np.where(metadata_df["task"].isin(["thermal", "thermalrate"]))[0]
+
+        # Filter X based on the thermal indices
+        X = X[thermal_indices]
+
+        # Filter epochs based on the thermal indices
+        epochs = epochs[thermal_indices]
+
 
 else:  
     #remove epochs above threshold
@@ -123,8 +138,15 @@ else:
     print("Number of epochs before removal:", len(metadata_df))
     print("Number of epochs after removal:", len(epochs))
 
-    X = epochs.get_data()
-    # Or normalize
+    # Only use thermal for regression
+    if target == "intensity" or target == "rating":
+        #only use thermal task for pain intensity
+        selected_tasks = ["thermal", "thermalrate"]
+        epochs = epochs[epochs.metadata["task"].isin(selected_tasks)]
+        X = epochs.get_data()
+    else:
+        X = epochs.get_data()
+
     X = X*1e6 # Convert from V to uV  
     for epo in tqdm(range(X.shape[0]), desc='Normalizing data'): # Loop epochs
         X[epo, :, :] = exponential_moving_standardize(X[epo, :, :], factor_new=0.001, init_block_size=None) # Normalize the data
@@ -168,7 +190,7 @@ elif model_name == "LinearRegression":
 elif model_name == "SVC":
     model = svm.SVC()
     parameters = { 
-        'svc__C': [0.1, 1, 10, 100],
+        'svc__C': [0.1, 1, 10],
         'svc__kernel': ['linear', 'poly', 'rbf', 'sigmoid'],
         'svc__gamma': ['scale', 'auto', 0.1, 1, 10],
         'svc__shrinking': [True, False],
@@ -227,7 +249,7 @@ elif model_name == "SGD":
     model = linear_model.SGDRegressor()
     parameters = {
         'sgdregressor__penalty' : ['l2', 'l1', 'elasticnet'],
-        'sgdregressor__alpha': [0.01, 0.1, 1.0],
+        'sgdregressor__alpha': [0.0001, 0.01, 0.1, 0.3],
     }
     task = 'regression'
     dl = False
@@ -475,9 +497,6 @@ elif task == 'regression':
     if target == 'rating':
         y = epochs.metadata["rating"].values 
     elif target == 'intensity':
-        #only use thermal task for pain intensity
-        selected_tasks = ["thermal", "thermalrate"]
-        X = epochs[epochs.metadata["task"].isin(selected_tasks)]
         y = epochs.metadata["intensity"].values 
 
 

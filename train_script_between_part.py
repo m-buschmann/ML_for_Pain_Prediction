@@ -215,6 +215,7 @@ def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfo
         best_params_fold = clf.best_params_
         #best_params_per_fold[fold] = best_params_fold #do we even need this?
         best_params_counts.update([str(best_params_fold)]) 
+        print(best_params_fold)
         
         y_pred_test = clf.predict(X_test_outer)
 
