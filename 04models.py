@@ -544,7 +544,7 @@ elif dl == True and part == "between":
     # Create a DataFrame
     data = pd.DataFrame({
         "Mean Score": [mean_score] + ["_"] * (data_length - 1),
-        "Test Scores": [score_test] + ["_"] * (data_length - len(score_test)),
+        "Test Scores": [score_test] + ["_"] * (data_length - 1),
         "True Label": all_true_labels,
         "Predicted Label": all_predictions
     })
