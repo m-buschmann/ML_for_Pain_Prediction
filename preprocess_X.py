@@ -112,8 +112,6 @@ epochs = epochs[selected_indices]
 print("Number of epochs before removal:", len(metadata_df))
 print("Number of epochs after removal:", len(epochs))
 
-# Preprocess the data
-# epochs.filter(4, 80)
 X = epochs.get_data()
 X = X*1e6 # Convert from V to uV
 
@@ -121,10 +119,11 @@ for epo in tqdm(range(X.shape[0]), desc='Normalizing data'): # Loop epochs
     X[epo, :, :] = exponential_moving_standardize(X[epo, :, :], factor_new=0.001, init_block_size=None) # Normalize the data
 
 # Save the preprocessed data and additional information to a .npz file
-np.savez('normalized_data.npz', X=X)
+np.savez('normalized_X.npz', X=X)
 
 # Save the selected indices to a text file
 with open("selected_indices.txt", "w") as f:
     for index in selected_indices:
         f.write(f"{index}\n")
 
+epochs.save(opj('normalized_epo.fif'), overwrite=True)

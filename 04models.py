@@ -63,7 +63,7 @@ if cuda:
         cuda = False
         device = torch.device('cpu')
 
-    bidsroot = '/lustre04/scratch/mabus103/epoched_data/cleaned_epo.fif'
+    bidsroot = '/lustre04/scratch/mabus103/epoched_data/normalized_epo.fif'
     log_dir=f'/lustre04/scratch/mabus103/logs'
     #log_dir=f'/lustre04/scratch/mabus103/ML_for_Pain_Prediction/logs'
 elif 'media/mp' in current_directory: #MP's local machine
@@ -99,24 +99,19 @@ data_path = opj(bidsroot)
 # Load epochs oject
 epochs = mne.read_epochs(data_path, preload=True)
 
-# Get the metadata DataFrame from the Epochs object
-metadata_df = epochs.metadata
-
-# Preprocess the data
-# epochs.filter(4, 80)
-selected_indices = []
+# Normalize X
+# If on compute canada:
 if cc:
-    loaded_data = np.load('normalized_data.npz')  # For .npz format
+    # load already normalized X
+    loaded_data = np.load('normalized_X.npz')  # For .npz format
     X = loaded_data['X']
 
-    # Load the selected indices from the text file
-    with open("selected_indices.txt", "r") as f:
-        selected_indices = [int(line.strip()) for line in f]
-    
-    epochs = epochs[selected_indices]
-else:    
+else:  
     #remove epochs above threshold
     threshold = 20
+
+    # Get the metadata DataFrame from the Epochs object
+    metadata_df = epochs.metadata
 
     # Get indices of epochs that meet the threshold
     selected_indices = np.where(metadata_df["diff_intensity"] <= abs(threshold))[0]
@@ -127,11 +122,12 @@ else:
     # Print the initial and final number of epochs
     print("Number of epochs before removal:", len(metadata_df))
     print("Number of epochs after removal:", len(epochs))
+
     X = epochs.get_data()
-    X = X*1e6 # Convert from V to uV
+    # Or normalize
+    X = X*1e6 # Convert from V to uV  
     for epo in tqdm(range(X.shape[0]), desc='Normalizing data'): # Loop epochs
         X[epo, :, :] = exponential_moving_standardize(X[epo, :, :], factor_new=0.001, init_block_size=None) # Normalize the data
-
 
 # Define the groups (participants) to avoid splitting them across train and test
 groups = epochs.metadata["participant_id"].values
@@ -270,7 +266,7 @@ elif model_name == "deep4netClassification":
         optimizer__lr = 0.0001,
         optimizer__weight_decay = 0.5 * 0.001, # As recommended on braindecode.org
         batch_size = bsize,
-        max_epochs=10,
+        max_epochs=50,
         iterator_valid__shuffle=False,
         iterator_train__shuffle=True,
         device=device,
@@ -328,7 +324,7 @@ elif model_name == "deep4netRegression":
         optimizer__lr = 0.00001,
         optimizer__weight_decay = 0, # As recommended on braindecode.org
         batch_size = bsize,
-        max_epochs=10,
+        max_epochs=50,
         iterator_valid__shuffle=False,
         iterator_train__shuffle=True,
         device=device,
@@ -374,7 +370,7 @@ elif model_name == "shallowFBCSPNetClassification":
         optimizer__lr = 0.00001,
         optimizer__weight_decay = 0, # As recommended on braindecode.org
         batch_size = bsize,
-        max_epochs=10,
+        max_epochs=50,
         iterator_valid__shuffle=False,
         iterator_train__shuffle=True,
         device=device,
@@ -433,13 +429,14 @@ elif model_name == "shallowFBCSPNetRegression":
         optimizer__lr = 0.001,
         optimizer__weight_decay = 0, # As recommended on braindecode.org
         batch_size = bsize,
-        max_epochs=10,
+        max_epochs=50,
         iterator_valid__shuffle=False,
         iterator_train__shuffle=True,
         device=device,
     )
     task = 'regression'
     dl = True
+
 """elif model_name == 'covariance_MDM':
     model = make_pipeline(
                 Covariances(),
@@ -463,39 +460,30 @@ print(model_name, part)
 
 #_____________________________________________________________________-
 # Training
-# Filter the metadata DataFrame based on the selected indices
-filtered_metadata = metadata_df.iloc[selected_indices]
 
 # Set y (and X)
 if task == 'classification':
     target == '3_classes' #take this out later! Just for now, to avoid mix up
-    filtered_metadata['task'].astype(str)
+    epochs.metadata['task'].astype(str)
     if target == '3_classes':
-        y = [i.replace('rate', '') for i in filtered_metadata["task"].values]
+        y = [i.replace('rate', '') for i in epochs.metadata["task"].values]
         y = np.array(y)
     elif target == '5_classes':
-        y = filtered_metadata["task"].values
+        y = epochs.metadata["task"].values
 elif task == 'regression':
     target == 'intensity' #take this out later! Just for now, to avoid mix up
     if target == 'rating':
-        y = filtered_metadata["rating"].values 
+        y = epochs.metadata["rating"].values 
     elif target == 'intensity':
         #only use thermal task for pain intensity
         selected_tasks = ["thermal", "thermalrate"]
-        X = epochs[filtered_metadata["task"].isin(selected_tasks)]
-        y = filtered_metadata["intensity"].values 
+        X = epochs[epochs.metadata["task"].isin(selected_tasks)]
+        y = epochs.metadata["intensity"].values 
 
-
-
-# Extract the corresponding y and groups values
-groups = filtered_metadata["participant_id"].values
 
 print("groups:", len(groups))
 print("X:",len(X))
 print("y:",len(y))
-
-# Get writer for tensorboard
-writer = SummaryWriter(log_dir=opj(log_dir, model_name, part))
 
 # Get writer for tensorboard
 writer = SummaryWriter(log_dir=opj(log_dir, model_name, part))

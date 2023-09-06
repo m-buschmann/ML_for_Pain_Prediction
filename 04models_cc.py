@@ -63,7 +63,7 @@ if cuda:
         cuda = False
         device = torch.device('cpu')
 
-    bidsroot = '/lustre04/scratch/mabus103/epoched_data/cleaned_epo.fif'
+    bidsroot = '/lustre04/scratch/mabus103/epoched_data/normalized_epo.fif'
     log_dir=f'/lustre04/scratch/mabus103/logs'
     #log_dir=f'/lustre04/scratch/mabus103/ML_for_Pain_Prediction/logs'
 elif 'media/mp' in current_directory: #MP's local machine
@@ -99,23 +99,14 @@ data_path = opj(bidsroot)
 # Load epochs oject
 epochs = mne.read_epochs(data_path, preload=True)
 
-# Get the metadata DataFrame from the Epochs object
-metadata_df = epochs.metadata
-
-# Preprocess the data
-# epochs.filter(4, 80)
-selected_indices = []
+# Normalize X
+# If on compute canada:
 if cc:
-    loaded_data = np.load('normalized_data.npz')  # For .npz format
+    # load already normalized X
+    loaded_data = np.load('normalized_X.npz')  # For .npz format
     X = loaded_data['X']
 
-    # Load the selected indices from the text file
-    with open("selected_indices.txt", "r") as f:
-        selected_indices = [int(line.strip()) for line in f]
-    
-    epochs = epochs[selected_indices]
-
-else:    
+else:
     #remove epochs above threshold
     threshold = 20
 
@@ -131,11 +122,12 @@ else:
     # Print the initial and final number of epochs
     print("Number of epochs before removal:", len(metadata_df))
     print("Number of epochs after removal:", len(epochs))
+
     X = epochs.get_data()
-    X = X*1e6 # Convert from V to uV
+    X = X*1e6 # Convert from V to uV  
+    
     for epo in tqdm(range(X.shape[0]), desc='Normalizing data'): # Loop epochs
         X[epo, :, :] = exponential_moving_standardize(X[epo, :, :], factor_new=0.001, init_block_size=None) # Normalize the data
-
 
 # Define the groups (participants) to avoid splitting them across train and test
 groups = epochs.metadata["participant_id"].values
