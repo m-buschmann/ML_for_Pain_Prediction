@@ -597,33 +597,36 @@ if task == 'classification':
     true_labels = data['True Label']
     predicted_labels = data['Predicted Label']
 
-    # Extract unique target names from the 'True Label' column
-    target_names = data['True Label'].unique()
+    # Get unique class labels
+    classes = sorted(list(set(true_labels) | set(predicted_labels)))
 
     # Create a confusion matrix
-    confusion = confusion_matrix(true_labels, predicted_labels)
+    cm = confusion_matrix(true_labels, predicted_labels, labels=classes)
 
     print("Confusion Matrix:")
-    print(confusion)
+    print(cm)
 
     # Plot and save the confusion matrix
     # Compute the confusion matrix
-    cm = confusion_matrix(true_labels, predicted_labels)
     cm_normalized = cm.astype(float) / cm.sum(axis=1)[:, np.newaxis]
 
-    # Plot confusion matrix
-    fig, ax = plt.subplots(1)
-    im = ax.imshow(cm_normalized, interpolation="nearest", cmap=plt.cm.Blues)
-    ax.set(title="Normalized Confusion matrix")
-    fig.colorbar(im)
-    tick_marks = np.arange(len(target_names))
-    plt.xticks(tick_marks, target_names, rotation=45)
-    plt.yticks(tick_marks, target_names)
-    fig.tight_layout(pad=1.5)
-    ax.set(ylabel="True label", xlabel="Predicted label")
+    plt.figure(figsize=(8, 6))
+    plt.imshow(cm_normalized, interpolation='nearest', cmap=plt.get_cmap('Blues'))
+    plt.title('Normalized Confusion Matrix')
+    plt.colorbar()
+    tick_marks = np.arange(len(classes))
+    plt.xticks(tick_marks, classes, rotation=45)
+    plt.yticks(tick_marks, classes)
+    for i in range(len(classes)):
+        for j in range(len(classes)):
+            text = "{:.2f}".format(cm_normalized[i, j])
+            plt.text(j, i, text, ha='center', va='center', color='white')
+    plt.xlabel('Predicted Labels')
+    plt.ylabel('True Labels')
+    plt.tight_layout(pad=1.5)
 
     # Add a legend with custom labels
-    if target == "5_classes":
+    if dl == True and target == "5_classes":
         target_names = ["auditory", "auditoryrate", "rest", "thermal", "thermalrate"]
         legend_labels = {
             0: 'auditory',
@@ -632,15 +635,21 @@ if task == 'classification':
             3: 'thermal',
             4: "thermalrate"
         }
-    elif target  == "3_classes":
+
+        legend_elements = [plt.Line2D([0], [0], marker='o', color='w', label=f"{label}: {text}", markersize=10, markerfacecolor='b') for label, text in legend_labels.items()]
+        plt.legend(handles=legend_elements, title="Legend")
+    
+    elif dl == True and target  == "3_classes":
         legend_labels = {
             0: 'auditory',
             1: 'rest',
             2: 'thermal'
         }
 
-    legend_elements = [plt.Line2D([0], [0], marker='o', color='w', label=f"{label}: {text}", markersize=10, markerfacecolor='b') for label, text in legend_labels.items()]
-    ax.legend(handles=legend_elements, title="Legend")
+        legend_elements = [plt.Line2D([0], [0], marker='o', color='w', label=f"{label}: {text}", markersize=10, markerfacecolor='b') for label, text in legend_labels.items()]
+        plt.legend(handles=legend_elements, title="Legend")
+    
+    plt.show()
 
     # Save the confusion matrix plot as an image file
     output_dir = f"images/confusion_matrix{model_name}"
