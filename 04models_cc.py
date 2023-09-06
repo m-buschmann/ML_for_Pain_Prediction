@@ -106,7 +106,7 @@ metadata_df = epochs.metadata
 # epochs.filter(4, 80)
 selected_indices = []
 if cc:
-    loaded_data = np.load('preprocessed_data.npz')  # For .npz format
+    loaded_data = np.load('normalized_data.npz')  # For .npz format
     X = loaded_data['X']
 
     # Load the selected indices from the text file
