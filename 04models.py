@@ -96,7 +96,7 @@ else:
     log_dir='/home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/logs'
 
 data_path = opj(bidsroot)
-# Load epochs oject
+# Load epochs oject, is already normalized and some epochs removed on compute canada
 epochs = mne.read_epochs(data_path, preload=True)
 
 # Normalize X

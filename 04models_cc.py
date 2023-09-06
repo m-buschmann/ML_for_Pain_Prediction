@@ -96,7 +96,7 @@ else:
     log_dir='/home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/logs'
 
 data_path = opj(bidsroot)
-# Load epochs oject
+# Load epochs oject, is already normalized and some epochs removed on compute canada
 epochs = mne.read_epochs(data_path, preload=True)
 
 # Normalize X
@@ -227,7 +227,7 @@ elif model_name == "SGD":
     model = linear_model.SGDRegressor()
     parameters = {
         'sgdregressor__penalty' : ['l2', 'l1', 'elasticnet'],
-        'sgdregressor__alpha': [0.01, 0.1, 1.0],
+        'sgdregressor__alpha': [0.0001, 0.01, 0.1, 0.3],
     }
     task = 'regression'
     dl = False
