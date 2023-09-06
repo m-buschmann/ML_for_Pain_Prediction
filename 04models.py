@@ -63,7 +63,7 @@ if cuda:
         cuda = False
         device = torch.device('cpu')
 
-    bidsroot = '/lustre04/scratch/mabus103/epoched_data/normalized_epo.fif'
+    bidsroot = '/lustre04/scratch/mabus103/normalized_data/normalized_epo.fif'
     log_dir=f'/lustre04/scratch/mabus103/logs'
     #log_dir=f'/lustre04/scratch/mabus103/ML_for_Pain_Prediction/logs'
 elif 'media/mp' in current_directory: #MP's local machine
