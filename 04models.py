@@ -78,7 +78,7 @@ elif 'media/mp' in current_directory: #MP's local machine
 
 elif "mplab" in current_directory:
     model_name = "SGD" #set the model to use. also determines dl and kind of task
-    part = 'within' # 'between' or 'within' participant
+    part = 'between' # 'between' or 'within' participant
     target = "intensity"
     optimizer_lr = 0.000625
     bsize = 16
@@ -87,9 +87,9 @@ elif "mplab" in current_directory:
     bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
     log_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/logs'
 else:
-    model_name = "RFClassifier" #set the model to use. also determines dl and kind of task
-    part = 'within'# 'between' or 'within' participant
-    target = "3_classes"
+    model_name = "SGD" #set the model to use. also determines dl and kind of task
+    part = 'between'# 'between' or 'within' participant
+    target = "intensity"
     optimizer_lr = 0.000625
     bsize = 16
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
@@ -139,7 +139,6 @@ else:
     print("Number of epochs before removal:", len(metadata_df))
     print("Number of epochs after removal:", len(epochs))
 
-    # Only use thermal for regression
     if target == "intensity" or target == "rating":
         #only use thermal task for pain intensity
         selected_tasks = ["thermal", "thermalrate"]

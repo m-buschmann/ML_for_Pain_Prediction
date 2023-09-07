@@ -109,12 +109,15 @@ def trainingDL_within(model, X, y, task='classification', nfolds=10, groups=None
 
             if task == 'regression':
                 fold_scores.append(np.sqrt(mean_squared_error(y_test, y_pred[test_idx])))
-                print("fold RMSE: ", fold_scores[-1])
-                writer.add_scalar('Test RMSE', np.sqrt(mean_squared_error(y_test, y_pred[test_idx])), fold) #added again?
+                print("Fold RMSE: ", fold_scores[-1])
+                writer.add_scalar('Fold RMSE', np.sqrt(mean_squared_error(y_test, y_pred[test_idx])), fold+1) 
+                # Calculate R-squared score
+                r2 = r2_score(y_test, y_pred[test_idx])
+                writer.add_scalar('Fold R-squared', r2, fold+1)
             else:
                 fold_scores.append(balanced_accuracy_score(y_test, y_pred[test_idx]))
                 print("fold accuracy: ", fold_scores[-1])
-                writer.add_scalar('Test Accuracy', balanced_accuracy_score(y_test, y_pred[test_idx]), fold)
+                writer.add_scalar('Fold Accuracy', balanced_accuracy_score(y_test, y_pred[test_idx]), fold+1)
 
         participant_scores.append(np.mean(fold_scores))
 
@@ -220,11 +223,14 @@ def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfol
             if task == 'regression':
                 fold_scores.append(np.sqrt(mean_squared_error(y_test, y_pred[test_idx])))
                 print("fold RMSE: ", fold_scores[-1])
-                writer.add_scalar('RMSE', np.sqrt(mean_squared_error(y_test, y_pred[test_idx])), fold) #added?
+                writer.add_scalar('Fold RMSE', np.sqrt(mean_squared_error(y_test, y_pred[test_idx])), fold+1)
+                # Calculate R-squared score
+                r2 = r2_score(y_test, y_pred[test_idx])
+                writer.add_scalar('Fold R-squared', r2, fold+1)
             else:
                 fold_scores.append(balanced_accuracy_score(y_test, y_pred[test_idx]))
                 print("fold accuracy: ", fold_scores[-1])
-                writer.add_scalar('Accuracy', balanced_accuracy_score(y_test, y_pred[test_idx]), fold) #added?
+                writer.add_scalar('Fold Accuracy', balanced_accuracy_score(y_test, y_pred[test_idx]), fold+1)
 
         participant_scores.append(np.mean(fold_scores))
 

@@ -113,8 +113,8 @@ def trainingDL_between(model, X, y, task = 'regression', nfolds=10, groups=None,
         if task == 'regression':
             rmse = np.sqrt(mean_squared_error(y_test, y_pred))
             scores.append(rmse)
-            print("Mean Squared Error in fold", i+1, ":", rmse)
-            writer.add_scalar('Train Loss/MSE', rmse, i+1) 
+            print("Root Mean Squared Error in fold", i+1, ":", rmse)
+            writer.add_scalar('Train Loss/RMSE', rmse, i+1) 
             # Calculate R-squared score
             r2 = r2_score(y_test, y_pred)
             writer.add_scalar('Train R-squared', r2, i+1)
@@ -130,11 +130,11 @@ def trainingDL_between(model, X, y, task = 'regression', nfolds=10, groups=None,
     print("Mean  Root Mean Squared Error(regression) or accuracy(classification) over all folds: {:.2f}".format(mean_score))
 
     if task == 'regression':
-        score_test = np.sqrt(mean_squared_error(all_true_labels, all_predictions)) #RMSE?
-        r2_test = r2_score(all_true_labels, all_predictions) #correct?
+        score_test = np.sqrt(mean_squared_error(all_true_labels, all_predictions)) 
+        r2_test = r2_score(all_true_labels, all_predictions) 
 
         print("Root Mean Squared Error total:", score_test) #these are total rates, not test rates, correct?
-        writer.add_scalar('Total Loss/RMSE', score_test)
+        writer.add_scalar('Total RMSE', score_test)
         writer.add_scalar('Total R-squared', r2_test)
 
     if task == 'classification':
@@ -228,6 +228,9 @@ def training_nested_cv_between(model, X, y, parameters, task = 'regression', nfo
             score_test.append(np.sqrt(mean_squared_error(y_test_outer, y_pred_test)))
             print("Mean Squared Error on Test Set:", score_test[fold], "in outer fold", fold+1)
             writer.add_scalar('Test Loss/RMSE', score_test[fold], fold+1) 
+            # Calculate R-squared score
+            r2 = r2_score(y_test_outer, y_pred_test)
+            writer.add_scalar('Test R-squared', r2, fold+1)
 
         if task == 'classification':
             score_test.append(accuracy_score(y_test_outer, y_pred_test))
