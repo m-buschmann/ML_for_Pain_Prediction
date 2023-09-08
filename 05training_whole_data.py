@@ -27,11 +27,17 @@ from tqdm import tqdm
 import csv
 import json
 import os
+import joblib
 from sklearn.linear_model import ElasticNet
 import sys
 from braindecode.preprocessing import exponential_moving_standardize
 #from pyriemann.classification import MDM, TSclassifier
 #from pyriemann.estimation import Covariances, Shrinkage
+
+from sklearn.model_selection import GridSearchCV
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import train_test_split
 
 # Set kind of Cross validation and task to perform 
 #part = 'between' # 'between' or 'within' participant
@@ -57,6 +63,7 @@ if cuda:
     part = sys.argv[2]
     bsize = 16  
     target = sys.argv[3]
+    search_params = sys.argv[4]
     if torch.cuda.is_available():
         device = torch.device('cuda')  # PyTorch will use the default GPU
         torch.backends.cudnn.benchmark = True
@@ -66,35 +73,39 @@ if cuda:
 
     bidsroot = '/lustre04/scratch/mabus103/normalized_data/normalized_epo.fif'
     log_dir=f'/lustre04/scratch/mabus103/logs'
+    model_dir=f'/lustre04/scratch/mabus103/models/'
     #log_dir=f'/lustre04/scratch/mabus103/ML_for_Pain_Prediction/logs'
 elif 'media/mp' in current_directory: #MP's local machine
     model_name = "shallowFBCSPNetClassification"
     part = "between"
     target = "3_classes"
+    search_params = False
     bsize = 16
     device = torch.device('cuda')
     bidsroot = 'data/cleaned_epo.fif'
     log_dir= 'logs'
 
 elif "mplab" in current_directory:
-    model_name = "SGD" #set the model to use. also determines dl and kind of task
+    model_name = "shallowFBCSPNetClassification" #set the model to use. also determines dl and kind of task
     part = 'between' # 'between' or 'within' participant
-    target = "intensity"
-    optimizer_lr = 0.000625
+    target = "3_classes"
+    search_params = False
     bsize = 16
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
     #bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/cleaned_epo.fif'
     bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
     log_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/logs'
+    model_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/models'
 else:
     model_name = "SGD" #set the model to use. also determines dl and kind of task
     part = 'between'# 'between' or 'within' participant
     target = "intensity"
-    optimizer_lr = 0.000625
+    search_params = False
     bsize = 16
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
     bidsroot = '/home/mathilda/MITACS/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
     log_dir='/home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/logs'
+    model_dir='/home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/models/'
 
 data_path = opj(bidsroot)
 # Load epochs oject, is already normalized and some epochs removed on compute canada
@@ -166,6 +177,11 @@ if target == "3_classes" or target =="5_classes":
 
 #__________________________________________________________________
 # Models
+checkpoint = Checkpoint(    dirname='best_model', f_history='best_model_checkpoint.json',
+                            f_criterion=None,
+                            f_optimizer=None,
+                            load_best=True,
+                        )
 
 # Choose parameters for nested CV
 if model_name == "LogisticRegression":
@@ -225,12 +241,12 @@ elif model_name == "RFClassifier":
 elif model_name == "RFRegressor":
     model = RandomForestRegressor()
     parameters = {
-        'randomforestregressor__n_jobs' : [-1],
-        'randomforestregressor__n_estimators': [50, 100, 200],
-        'randomforestregressor__max_depth': [None, 10, 20],
-        'randomforestregressor__min_samples_split': [2, 5, 10],
-        'randomforestregressor__min_samples_leaf': [1, 2, 4],
-        'randomforestregressor__bootstrap': [True, False]
+        'n_jobs' : [-1],
+        'n_estimators': [50, 100, 200],
+        'max_depth': [None, 10, 20],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4],
+        'bootstrap': [True, False]
     }
     task = 'regression'
     dl = False
@@ -238,9 +254,9 @@ elif model_name == "RFRegressor":
 elif model_name == "ElasticNet":
     model = ElasticNet()
     parameters = {
-        'elasticnet__alpha': [0.01, 0.1, 1.0],        # Regularization strength (higher values add more penalty)
-        'elasticnet__l1_ratio': [0.1, 0.5, 0.9],      # Mixing parameter between L1 and L2 penalty (0: Ridge, 1: Lasso)
-        'elasticnet__max_iter': [1000, 2000, 5000],   # Maximum number of iterations for optimization
+        'alpha': [0.01, 0.1, 1.0],        # Regularization strength (higher values add more penalty)
+        'l1_ratio': [0.1, 0.5, 0.9],      # Mixing parameter between L1 and L2 penalty (0: Ridge, 1: Lasso)
+        'max_iter': [1000, 2000, 5000],   # Maximum number of iterations for optimization
     }
     task = 'regression'
     dl = False
@@ -248,8 +264,8 @@ elif model_name == "ElasticNet":
 elif model_name == "SGD":
     model = linear_model.SGDRegressor()
     parameters = {
-        'sgdregressor__penalty' : ['l2', 'l1', 'elasticnet'],
-        'sgdregressor__alpha': [0.0001, 0.01, 0.1, 0.3],
+        'penalty' : ['l2', 'l1', 'elasticnet'],
+        'alpha': [0.0001, 0.01, 0.1, 0.3],
     }
     task = 'regression'
     dl = False
@@ -370,16 +386,11 @@ elif model_name == "shallowFBCSPNetClassification":
     model = EEGClassifier(
         module=shallow_fbcsp_net_classification,
         criterion=torch.nn.NLLLoss,
-        train_split=None, # None here, update intraining function
+        #train_split=None, # None here, update intraining function
         callbacks = [
             "balanced_accuracy",
 
-            ("checkpoint", Checkpoint(
-                            f_criterion=None,
-                            f_optimizer=None,
-                            f_history=None,
-                            load_best=True,
-                        )),
+            ("checkpoint", checkpoint),
 
             # ("lr_scheduler", LRScheduler(policy="ReduceLROnPlateau",
             #                              monitor="valid_loss",
@@ -392,8 +403,8 @@ elif model_name == "shallowFBCSPNetClassification":
         optimizer__lr = 0.00001,
         optimizer__weight_decay = 0, # As recommended on braindecode.org
         batch_size = bsize,
-        max_epochs=50,
-        iterator_valid__shuffle=False,
+        max_epochs=5,
+        #iterator_valid__shuffle=False,
         iterator_train__shuffle=True,
         device=device,
     )
@@ -479,9 +490,8 @@ elif model_name == "shallowFBCSPNetRegression":
     dl = False"""
 
 print(model_name, part)
-
-#_____________________________________________________________________-
-# Training
+if dl == True:
+    search_params = False
 
 # Set y
 if task == 'classification':
@@ -499,161 +509,79 @@ elif task == 'regression':
     elif target == 'intensity':
         y = epochs.metadata["intensity"].values 
 
+#_______________________________________________________________________________
+#Training here
 
-print("groups:", len(groups))
-print("X:",len(X))
-print("y:",len(y))
+#from skorch.utils import load_checkpoint
 
-# Get writer for tensorboard
-writer = SummaryWriter(log_dir=opj(log_dir, model_name, part))
-
-# Train the EEG model using cross-validation
-if dl == False and part == 'within':
-    mean_score, all_true_labels, all_predictions, participant_scores, most_common_best_param = training_nested_cv_within(model, X, y, parameters, task=task, nfolds=3, n_inner_splits=2, groups=groups, writer=writer)
-if dl == False and part == 'between':
-    mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_between(model, X, y, parameters = parameters, task =task, nfolds=3, n_inner_splits=2, groups=groups, writer=writer)
-if dl == True and part == 'within':
-    mean_score, all_true_labels, all_predictions, participants_scores = trainingDL_within(model, X, y, task=task, groups=groups, writer=writer, nfolds=2)
-if dl == True and part == 'between':
-    mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task=task, nfolds=2, groups=groups, writer=writer)
-
-# Close the SummaryWriter when done
-writer.close()
-
-# Specify the file path for storing the results
-output_dir = f"results{model_name}"
-os.makedirs(output_dir, exist_ok=True)  # Create the directory if it doesn't exist
-output_file = os.path.join(output_dir, f"{part}.csv")
-
-# Determine the length of the data
-data_length = len(all_true_labels)
-if dl == True and part == "within":
-    # Create a DataFrame
-    data = pd.DataFrame({
-        "Mean Score": [mean_score] + ["_"] * (data_length - 1),
-        "Participant Scores": participants_scores + ["_"] * (data_length - len(participants_scores)),
-        "True Label": all_true_labels,
-        "Predicted Label": all_predictions
-    })
-
-    # Write the DataFrame to a CSV file
-    data.to_csv(output_file, index=False)
-
-elif dl == True and part == "between":
-    # Create a DataFrame
-    data = pd.DataFrame({
-        "Mean Score": [mean_score] + ["_"] * (data_length - 1),
-        "Test Scores": [score_test] + ["_"] * (data_length - 1),
-        "True Label": all_true_labels,
-        "Predicted Label": all_predictions
-    })
-
-    # Write the DataFrame to a CSV file
-    data.to_csv(output_file, index=False)
+best_params = {
+        'penalty' : 'l2',
+        'alpha': 0.01,
+    }
 
 
-elif dl == False and part == "between":
-    # Convert the dictionary to a JSON string and remove commas
-    most_common_best_param_json = json.dumps(most_common_best_param, separators=(',', ':'))
-    # Replace commas with semicolons
-    most_common_best_param_json = most_common_best_param_json.replace(',', ';')
-    
-    # Create a DataFrame
-    data = pd.DataFrame({
-        "Mean Score": [mean_score] + ["_"] * (data_length - 1),
-        "Test Scores": score_test + ["_"] * (data_length - len(score_test)),
-        "Most common best Parameter": [most_common_best_param_json] + ["_"] * (data_length - 1),
-        "True Label": all_true_labels,
-        "Predicted Label": all_predictions
-    })
+if dl:
+    # Convert categorical labels to integer indices
+    if task == "classification":
+        label_encoder = LabelEncoder()
+        y = label_encoder.fit_transform(y)
+        y = torch.tensor(y, dtype=torch.int64)
+        # Print the mapping between integer labels and original labels
+        label_mapping = dict(zip(np.unique(y), label_encoder.classes_))
+        print("Label mapping:")
+        for integer_label, original_label in label_mapping.items():
+            print(f"{integer_label} -> {original_label}")        
+    else:
+        # Convert numerical labels to float
+        y = torch.tensor(y, dtype=torch.float32)
 
-    # Write the DataFrame to a CSV file
-    data.to_csv(output_file, index=False)
+    X = X.astype(np.int64)
 
-elif dl == False and part == "within":
-    # Convert the dictionary to a JSON string and remove commas
-    most_common_best_param_json = json.dumps(most_common_best_param, separators=(',', ':'))
-    # Replace commas with semicolons
-    most_common_best_param_json = most_common_best_param_json.replace(',', ';')
-    
-    # Create a DataFrame
-    data = pd.DataFrame({
-        "Mean Score": [mean_score] + ["_"] * (data_length - 1),
-        "Participant Mean Scores": participant_scores + ["_"] * (data_length - len(participant_scores)),
-        "Most common best Parameter": [most_common_best_param_json] + ["_"] * (data_length - 1),
-        "True Label": all_true_labels,
-        "Predicted Label": all_predictions
-    })
+    model.fit(X, y)
 
-    # Write the DataFrame to a CSV file
-    data.to_csv(output_file, index=False)
+    # Save the final model to a file
+    joblib.dump(model, f'{model_dir}{model_name}_{target}.joblib')
+    #torch.save(model.state_dict(), f'{model_dir}_{model_name}_{target}.pth')
 
-# For classification, build a confusion matrix
-if task == 'classification':
-    # Load data from the CSV file
-    data = pd.read_csv(output_file)  
-    true_labels = data['True Label']
-    predicted_labels = data['Predicted Label']
 
-    # Get unique class labels
-    classes = sorted(list(set(true_labels) | set(predicted_labels)))
 
-    # Create a confusion matrix
-    cm = confusion_matrix(true_labels, predicted_labels, labels=classes)
+elif search_params:
+    if task == "regression":
+        scoring = 'neg_root_mean_squared_error'
+    else:
+        scoring = 'accuracy'
 
-    print("Confusion Matrix:")
-    print(cm)
+    if isinstance(model, Pipeline):
+        pass
+    else:
+        vectorizer = mne.decoding.Vectorizer()
+        X = vectorizer.fit_transform(X)
 
-    # Plot and save the confusion matrix
-    # Compute the confusion matrix
-    cm_normalized = cm.astype(float) / cm.sum(axis=1)[:, np.newaxis]
+    # Create a GridSearchCV object
+    grid_search = GridSearchCV(n_jobs=-1, estimator=model, param_grid=parameters, cv=10, scoring=scoring)
 
-    plt.figure(figsize=(8, 6))
-    plt.imshow(cm_normalized, interpolation='nearest', cmap=plt.get_cmap('Blues'))
-    plt.title('Normalized Confusion Matrix')
-    plt.colorbar()
-    tick_marks = np.arange(len(classes))
-    plt.xticks(tick_marks, classes, rotation=45)
-    plt.yticks(tick_marks, classes)
-    for i in range(len(classes)):
-        for j in range(len(classes)):
-            text = "{:.2f}".format(cm_normalized[i, j])
-            plt.text(j, i, text, ha='center', va='center', color='white')
-    plt.xlabel('Predicted Labels')
-    plt.ylabel('True Labels')
-    plt.tight_layout(pad=1.5)
+    # Fit (train) the GridSearchCV object on your data
+    grid_search.fit(X, y)
 
-    # Add a legend with custom labels
-    if dl == True and target == "5_classes":
-        target_names = ["auditory", "auditoryrate", "rest", "thermal", "thermalrate"]
-        legend_labels = {
-            0: 'auditory',
-            1: "auditoryrate",
-            2: 'rest',
-            3: 'thermal',
-            4: "thermalrate"
-        }
+    # Get the best parameters and the best estimator (model)
+    best_params = grid_search.best_params_
+    best_model = grid_search.best_estimator_
 
-        legend_elements = [plt.Line2D([0], [0], marker='o', color='w', label=f"{label}: {text}", markersize=10, markerfacecolor='b') for label, text in legend_labels.items()]
-        plt.legend(handles=legend_elements, title="Legend")
-    
-    elif dl == True and target  == "3_classes":
-        legend_labels = {
-            0: 'auditory',
-            1: 'rest',
-            2: 'thermal'
-        }
+    # Optionally, you can save the best model to a file
+    joblib.dump(best_model, f'{model_dir}{model_name}_{target}.joblib')
 
-        legend_elements = [plt.Line2D([0], [0], marker='o', color='w', label=f"{label}: {text}", markersize=10, markerfacecolor='b') for label, text in legend_labels.items()]
-        plt.legend(handles=legend_elements, title="Legend")
-    
-    plt.show()
+else:
+    # Initialize your machine learning model with specific parameters
+    best_model = model.set_params(**best_params)
 
-    # Save the confusion matrix plot as an image file
-    output_dir = f"images/confusion_matrix{model_name}"
-    os.makedirs(output_dir, exist_ok=True)  # Create the directory if it doesn't exist
-    output_file = os.path.join(output_dir, f"{part}.png")
-    plt.savefig(output_file)
+    if isinstance(model, Pipeline):
+        pass
+    else:
+        vectorizer = mne.decoding.Vectorizer()
+        X = vectorizer.fit_transform(X)
 
-# Run this in Terminal to see tensorboard
-#tensorboard --logdir /home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/logs/deep4netClassification/between --port 6007
+    # Fit (train) the model on the full dataset
+    best_model.fit(X, y)
+
+    # Save the model to a file
+    joblib.dump(best_model, f'{model_dir}{model_name}_{target}.joblib')
