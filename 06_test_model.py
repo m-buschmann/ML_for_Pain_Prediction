@@ -47,7 +47,6 @@ if cuda:
     part = sys.argv[2]
     bsize = 16  
     target = sys.argv[3]
-    search_params = sys.argv[4]
     if torch.cuda.is_available():
         device = torch.device('cuda')  # PyTorch will use the default GPU
         torch.backends.cudnn.benchmark = True
@@ -62,7 +61,6 @@ elif 'media/mp' in current_directory: #MP's local machine
     model_name = "shallowFBCSPNetClassification"
     part = "between"
     target = "3_classes"
-    search_params = False
     bsize = 16
     device = torch.device('cuda')
     bidsroot = 'data/cleaned_epo.fif'
@@ -72,7 +70,6 @@ elif "mplab" in current_directory:
     model_name = "SGD" #set the model to use. also determines dl and kind of task
     part = 'between' # 'between' or 'within' participant
     target = "intensity"
-    search_params = False
     bsize = 16
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
     #bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/cleaned_epo.fif'
@@ -145,8 +142,6 @@ else:
     for epo in tqdm(range(X.shape[0]), desc='Normalizing data'): # Loop epochs
         X[epo, :, :] = exponential_moving_standardize(X[epo, :, :], factor_new=0.001, init_block_size=None) # Normalize the data
 
-# Define the groups (participants) to avoid splitting them across train and test
-groups = epochs.metadata["participant_id"].values
 
 # Set y
 if task == 'classification':
@@ -166,7 +161,7 @@ elif task == 'regression':
 
 
 # Load the saved model
-model = joblib.load(f'/home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/models_SGD_intensity.joblib')
+model = joblib.load(model_dir)
 
 if dl:
     # Convert categorical labels to integer indices
@@ -191,14 +186,13 @@ else:
         vectorizer = mne.decoding.Vectorizer()
         X = vectorizer.fit_transform(X)
 
-X_test= X[0:100]
+X_test= X[0:100] #just for testing code
 y_test = y[0:100]    
 
-# Assuming you have test data X_test and corresponding labels y_test
 # Make predictions on the test data
 y_pred = model.predict(X_test)
 
-# Calculate accuracy (or other relevant evaluation metric)
+# Calculate score
 if task == "classification":
     accuracy = accuracy_score(y_test, y_pred)
 

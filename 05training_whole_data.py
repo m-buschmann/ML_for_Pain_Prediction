@@ -177,11 +177,6 @@ if target == "3_classes" or target =="5_classes":
 
 #__________________________________________________________________
 # Models
-checkpoint = Checkpoint(    dirname='best_model', f_history='best_model_checkpoint.json',
-                            f_criterion=None,
-                            f_optimizer=None,
-                            load_best=True,
-                        )
 
 # Choose parameters for nested CV
 if model_name == "LogisticRegression":
@@ -286,10 +281,9 @@ elif model_name == "deep4netClassification":
         callbacks = [
             "balanced_accuracy",
             "accuracy",
-            ("checkpoint", Checkpoint(
+            ("checkpoint", Checkpoint(    dirname='best_model', f_history='best_model_checkpoint.json',
                             f_criterion=None,
                             f_optimizer=None,
-                            f_history=None,
                             load_best=True,
                         )),
 
@@ -344,10 +338,9 @@ elif model_name == "deep4netRegression":
             "neg_root_mean_squared_error",
             "neg_mean_absolute_error",
             "r2",
-            ("checkpoint", Checkpoint(
+            ("checkpoint", Checkpoint(    dirname='best_model', f_history='best_model_checkpoint.json',
                             f_criterion=None,
                             f_optimizer=None,
-                            f_history=None,
                             load_best=True,
                         )),
 
@@ -390,7 +383,11 @@ elif model_name == "shallowFBCSPNetClassification":
         callbacks = [
             "balanced_accuracy",
 
-            ("checkpoint", checkpoint),
+            ("checkpoint", Checkpoint(    dirname='best_model', f_history='best_model_checkpoint.json',
+                            f_criterion=None,
+                            f_optimizer=None,
+                            load_best=True,
+                        )),
 
             # ("lr_scheduler", LRScheduler(policy="ReduceLROnPlateau",
             #                              monitor="valid_loss",
@@ -444,10 +441,9 @@ elif model_name == "shallowFBCSPNetRegression":
             "neg_root_mean_squared_error",
             "r2",
             "neg_mean_absolute_error",
-            ("checkpoint", Checkpoint(
+            ("checkpoint", Checkpoint(    dirname='best_model', f_history='best_model_checkpoint.json',
                             f_criterion=None,
                             f_optimizer=None,
-                            f_history=None,
                             load_best=True,
                         )),
 
