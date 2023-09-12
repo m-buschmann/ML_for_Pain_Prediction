@@ -210,7 +210,7 @@ def bayes_training_nested_cv_within(model, X, y, parameters, task = 'regression'
 
             # inner cross-validation
             # fit regressor to training data of inner CV
-            clf_fold = BayesSearchCV(clf_fold, parameters, cv = KFold(n_inner_splits).split(X_train_fold, y_train_fold), refit = True)
+            clf_fold = BayesSearchCV(clf_fold, parameters, cv = KFold(n_inner_splits).split(X_train_fold, y_train_fold), refit = True, n_iter=50)
             clf_fold.fit(X_train_fold, y_train_fold)
 
             # # Store best parameters for each fold

@@ -209,7 +209,7 @@ def bayes_training_nested_cv_between(model, X, y, parameters, task = 'regression
 
         # inner cross-validation
         clf = BayesSearchCV(full_pipe, parameters, cv=GroupKFold(n_inner_splits).split(X_train_outer, y_train_outer, inner_group),
-                           refit=True,n_iter=2)
+                           refit=True, n_iter=50)
         clf.fit(X_train_outer, y_train_outer) # Fit the model on the training data
 
         # Store best parameters for each fold

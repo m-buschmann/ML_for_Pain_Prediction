@@ -28,8 +28,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm
 import csv
-import json
 import os
+import json
 from sklearn.linear_model import ElasticNet
 import sys
 from braindecode.preprocessing import exponential_moving_standardize
@@ -82,7 +82,7 @@ elif 'media/mp' in current_directory: #MP's local machine
 elif "mplab" in current_directory:
     model_name = "SGD" #set the model to use. also determines dl and kind of task
     part = 'between' # 'between' or 'within' participant
-    target = "intensity"
+    target = "3_classes"
     optimizer_lr = 0.000625
     bsize = 16
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
@@ -90,8 +90,8 @@ elif "mplab" in current_directory:
     bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
     log_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/logs'
 else:
-    model_name = "RFRegressor" #set the model to use. also determines dl and kind of task
-    part = 'within'# 'between' or 'within' participant
+    model_name = "SGD" #set the model to use. also determines dl and kind of task
+    part = 'between'# 'between' or 'within' participant
     target = "intensity"
     optimizer_lr = 0.000625
     bsize = 16
@@ -125,7 +125,7 @@ if cc:
         epochs = epochs[thermal_indices]
 
 
-else:  
+else:
     #remove epochs above threshold
     threshold = 20
 
@@ -151,6 +151,7 @@ else:
         X = epochs.get_data()
 
     X = X*1e6 # Convert from V to uV  
+
     for epo in tqdm(range(X.shape[0]), desc='Normalizing data'): # Loop epochs
         X[epo, :, :] = exponential_moving_standardize(X[epo, :, :], factor_new=0.001, init_block_size=None) # Normalize the data
 
@@ -486,7 +487,7 @@ print(model_name, part)
 #_____________________________________________________________________-
 # Training
 
-# Set y
+# Set y (and X)
 if task == 'classification':
     target == '3_classes' #take this out later! Just for now, to avoid mix up
     epochs.metadata['task'].astype(str)
@@ -512,13 +513,13 @@ writer = SummaryWriter(log_dir=opj(log_dir, model_name, part))
 
 # Train the EEG model using cross-validation
 if dl == False and part == 'within':
-    mean_score, all_true_labels, all_predictions, participant_scores, most_common_best_param = bayes_training_nested_cv_within(model, X, y, parameters, task=task, nfolds=3, n_inner_splits=2, groups=groups, writer=writer)
+    mean_score, all_true_labels, all_predictions, participant_scores, most_common_best_param = bayes_training_nested_cv_within(model, X, y, parameters, task=task, nfolds=10, n_inner_splits=5, groups=groups, writer=writer)
 if dl == False and part == 'between':
-    mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = bayes_training_nested_cv_between(model, X, y, parameters = parameters, task =task, nfolds=3, n_inner_splits=2, groups=groups, writer=writer)
+    mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = bayes_training_nested_cv_between(model, X, y, parameters = parameters, task =task, nfolds=10, n_inner_splits=5, groups=groups, writer=writer)
 if dl == True and part == 'within':
-    mean_score, all_true_labels, all_predictions, participants_scores = trainingDL_within(model, X, y, task=task, groups=groups, writer=writer, nfolds=2)
+    mean_score, all_true_labels, all_predictions, participants_scores = trainingDL_within(model, X, y, task=task, groups=groups, writer=writer, nfolds=10)
 if dl == True and part == 'between':
-    mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task=task, nfolds=2, groups=groups, writer=writer)
+    mean_score, all_true_labels, all_predictions, score_test = trainingDL_between(model, X, y, task=task, nfolds=10, groups=groups, writer=writer)
 
 # Close the SummaryWriter when done
 writer.close()
@@ -590,6 +591,7 @@ elif dl == False and part == "within":
 
     # Write the DataFrame to a CSV file
     data.to_csv(output_file, index=False)
+
 
 # For classification, build a confusion matrix
 if task == 'classification':
