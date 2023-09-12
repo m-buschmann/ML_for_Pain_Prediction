@@ -403,7 +403,7 @@ elif model_name == "shallowFBCSPNetClassification":
         optimizer__lr = 0.00001,
         optimizer__weight_decay = 0, # As recommended on braindecode.org
         batch_size = bsize,
-        max_epochs=5,
+        max_epochs=50,
         #iterator_valid__shuffle=False,
         iterator_train__shuffle=True,
         device=device,

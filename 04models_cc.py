@@ -16,6 +16,9 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from skorch.callbacks import Checkpoint, EarlyStopping, LRScheduler, ProgressBar, EpochScoring
 from train_script_between_part import trainingDL_between, training_nested_cv_between
 from train_script_within_part import training_nested_cv_within, trainingDL_within
+from bayes_train_script_between_part import bayes_training_nested_cv_between
+from bayes_train_script_within_part import bayes_training_nested_cv_within
+
 import torch.nn as nn
 import pandas as pd
 from sklearn.pipeline import make_pipeline

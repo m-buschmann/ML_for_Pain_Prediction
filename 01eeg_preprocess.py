@@ -179,7 +179,7 @@ for p in part:
         # Run ICA labels
         ica_labels = label_components(epochs, ica, method="iclabel")
 
-        # Remove components labveled as bad with > X probability
+        # Remove components labeled as bad with > X probability
         remove = [
             1
             if ic

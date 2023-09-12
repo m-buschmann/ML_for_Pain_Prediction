@@ -16,6 +16,9 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from skorch.callbacks import Checkpoint, EarlyStopping, LRScheduler, ProgressBar, EpochScoring
 from train_script_between_part import trainingDL_between, training_nested_cv_between
 from train_script_within_part import training_nested_cv_within, trainingDL_within
+from bayes_train_script_between_part import bayes_training_nested_cv_between
+from bayes_train_script_within_part import bayes_training_nested_cv_within
+
 import torch.nn as nn
 import pandas as pd
 from sklearn.pipeline import make_pipeline
@@ -87,7 +90,7 @@ elif "mplab" in current_directory:
     bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
     log_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/logs'
 else:
-    model_name = "SGD" #set the model to use. also determines dl and kind of task
+    model_name = "RFRegressor" #set the model to use. also determines dl and kind of task
     part = 'between'# 'between' or 'within' participant
     target = "intensity"
     optimizer_lr = 0.000625
@@ -509,9 +512,9 @@ writer = SummaryWriter(log_dir=opj(log_dir, model_name, part))
 
 # Train the EEG model using cross-validation
 if dl == False and part == 'within':
-    mean_score, all_true_labels, all_predictions, participant_scores, most_common_best_param = training_nested_cv_within(model, X, y, parameters, task=task, nfolds=3, n_inner_splits=2, groups=groups, writer=writer)
+    mean_score, all_true_labels, all_predictions, participant_scores, most_common_best_param = bayes_training_nested_cv_within(model, X, y, parameters, task=task, nfolds=3, n_inner_splits=2, groups=groups, writer=writer)
 if dl == False and part == 'between':
-    mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = training_nested_cv_between(model, X, y, parameters = parameters, task =task, nfolds=3, n_inner_splits=2, groups=groups, writer=writer)
+    mean_score, all_true_labels, all_predictions, score_test, most_common_best_param = bayes_training_nested_cv_between(model, X, y, parameters = parameters, task =task, nfolds=3, n_inner_splits=2, groups=groups, writer=writer)
 if dl == True and part == 'within':
     mean_score, all_true_labels, all_predictions, participants_scores = trainingDL_within(model, X, y, task=task, groups=groups, writer=writer, nfolds=2)
 if dl == True and part == 'between':
