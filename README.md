@@ -51,7 +51,7 @@ results:
       - else: set your own bidsroot and log_dir and the arguments
       - right now, the code sets target = 'intensity' or '3_classes' later in the code to prevent mix-ups
         
-### .sh file:   
+## example .sh file:   
 #!/bin/bash
 #SBATCH --time=3:00:00
 #SBATCH --account=def-mpcoll
