@@ -1,6 +1,0 @@
-Mean Score,Test Score,Best Parameters,True Label,Predicted Label
-0.28765206716083913
-[]
-"{'mdm__metric': {'mean': 'riemann', 'distance': 'riemann'}, 'mdm__n_jobs': -1, 'shrinkage__shrinkage': 0.2}"
-['thermalrate' 'thermalrate' 'thermalrate' ... 'rest' 'rest' 'rest']
-['auditoryrate' 'auditoryrate' 'auditoryrate' ... 'rest' 'rest' 'rest']
