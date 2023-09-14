@@ -35,21 +35,39 @@ results:
 - images: results computed from my laptop, delete later
 - logs: results computed from my laptop, delete later
 
-  ## How to use
-  ### Preprocess data
-  - 01eeg_preprocess.py: exchange bidsroot for the path to your eeg data
-  - 02cleaning_epochs.py: exchange bidsroot for the path to your eeg data
-  - preprocess_X.py: exchange bidsroot and log_dir for the path to your eeg data
+## How to use
+### Preprocess data
+- 01eeg_preprocess.py: exchange bidsroot for the path to your eeg data
+- 02cleaning_epochs.py: exchange bidsroot for the path to your eeg data
+- preprocess_X.py: exchange bidsroot and log_dir for the path to your eeg data
 
-  ### Run the models
-  - 04models_cc.py
-      - if running on Compute Canada: easiest to use a .sh file with the arguments
-        model_name = sys.argv[1] (the model to use)
-        part = sys.argv[2] ('within' or 'between')
-        target = sys.argv[3] (3_classes, 5_classes, intensity, or rating)
-        (see example below)
-      - else: set your own bidsroot and log_dir and the arguments
-      - right now, the code sets target = 'intensity' or '3_classes' later in the code to prevent mix-ups
+### Run the models
+- 04models_cc.py
+    - if running on Compute Canada: easiest to use a .sh file with the arguments
+    model_name = sys.argv[1] (the model to use)
+    part = sys.argv[2] ('within' or 'between')
+    target = sys.argv[3] (3_classes, 5_classes, intensity, or rating)
+    (see example below)
+    - else: set your own bidsroot and log_dir and the arguments
+    - right now, the code sets target = 'intensity' or '3_classes' later in the code to prevent mix-ups
+
+### Train models on whole dataset
+- 05training_whole_data.py
+    - if running on Compute Canada: easiest to use a .sh file with the arguments
+    model_name = sys.argv[1] (the model to use)
+    part = sys.argv[2] ('within' or 'between')
+    target = sys.argv[3] (3_classes, 5_classes, intensity, or rating)
+    search_params = sys.argv[4] (whether to do grid search or not)
+    - else: set your own bidsroot, log_dir, model_dir (where to save models) and the arguments
+
+### Test on new data
+- 06_test_model.py
+    - if running on Compute Canada: easiest to use a .sh file with the arguments
+    model_name = sys.argv[1] (the model to use)
+    part = sys.argv[2] ('within' or 'between')
+    target = sys.argv[3] (3_classes, 5_classes, intensity, or rating)
+    - else: set your own bidsroot,  log_dir, model_dir (where to load models from) and the arguments
+
         
 ## example .sh file:   
 #!/bin/bash
