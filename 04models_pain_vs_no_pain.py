@@ -500,7 +500,7 @@ writer.close()
 # Specify the file path for storing the results
 output_dir = f"results{model_name}"
 os.makedirs(output_dir, exist_ok=True)  # Create the directory if it doesn't exist
-output_file = os.path.join(output_dir, f"{part}.csv")
+output_file = os.path.join(output_dir, f"{part}_pain_vs_no_pain.csv")
 
 # Determine the length of the data
 data_length = len(all_true_labels)
@@ -617,7 +617,7 @@ if task == 'classification':
     # Save the confusion matrix plot as an image file
     output_dir = f"images/confusion_matrix{model_name}"
     os.makedirs(output_dir, exist_ok=True)  # Create the directory if it doesn't exist
-    output_file = os.path.join(output_dir, f"{part}.png")
+    output_file = os.path.join(output_dir, f"{part}_pain_vs_no_pain.png")
     plt.savefig(output_file)
 
 # Run this in Terminal to see tensorboard
