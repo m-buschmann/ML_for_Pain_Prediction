@@ -10,12 +10,12 @@
 - bayes_train_script_within_part.py: contains training for DL and standard ML within participants with bayes nested CV
 - 04bayes_models_cc.py: Run the training with bayes grid search, needed it right now as its own file, but can be integrated into the other models script as an optiomn later
 - 04models.py basically the same as "04models_cc.py", used it to experiment in order to not mess anything up in the code I run in Compute Canada. Can be deleted.
-- 04models_cc.py: The code to run on Compute Canada to train models. Should always contain the current state of the code. To run it on Compute Canada, it expects the following arguments:
+- 04models_cc.py: The code to run on Compute Canada to train models. Should always contain the current state of the code. To run it on Compute Canada, it expects the following arguments:\
     model_name = sys.argv[1]\
     part = sys.argv[2]\
     target = sys.argv[3]\
   (as from 14.09.2023)
-- 05training_whole_data.py: Train the model on the whole datase, save the model. Expects the arguments
+- 05training_whole_data.py: Train the model on the whole datase, save the model. Expects the arguments\
     model_name = sys.argv[1]\
     part = sys.argv[2]\
     target = sys.argv[3]\
@@ -47,7 +47,7 @@
 
 ### Run the training
 - 04models_cc.py
-    - if running on Compute Canada: easiest to use a .sh file with the arguments
+    - if running on Compute Canada: easiest to use a .sh file with the arguments\
     model_name = sys.argv[1] (the model to use)\
     part = sys.argv[2] ('within' or 'between')\
     target = sys.argv[3] (3_classes, 5_classes, intensity, or rating)\
@@ -57,7 +57,7 @@
 
 ### Train models on whole dataset
 - 05training_whole_data.py
-    - if running on Compute Canada: easiest to use a .sh file with the arguments
+    - if running on Compute Canada: easiest to use a .sh file with the arguments\
     model_name = sys.argv[1] (the model to use)\
     part = sys.argv[2] ('within' or 'between')\
     target = sys.argv[3] (3_classes, 5_classes, intensity, or rating)\
@@ -66,7 +66,7 @@
 
 ### Test on new data
 - 06_test_model.py
-    - if running on Compute Canada: easiest to use a .sh file with the arguments
+    - if running on Compute Canada: easiest to use a .sh file with the arguments\
     model_name = sys.argv[1] (the model to use)\
     part = sys.argv[2] ('within' or 'between')\
     target = sys.argv[3] (3_classes, 5_classes, intensity, or rating)
