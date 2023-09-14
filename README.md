@@ -34,3 +34,77 @@ results:
 - resultsxxx: results computed from my laptop, delete later
 - images: results computed from my laptop, delete later
 - logs: results computed from my laptop, delete later
+
+  ## How to use
+  ### Preprocess data
+  - 01eeg_preprocess.py: exchange bidsroot for the path to your eeg data
+  - 02cleaning_epochs.py: exchange bidsroot for the path to your eeg data
+  - preprocess_X.py: exchange bidsroot and log_dir for the path to your eeg data
+
+  ### Run the models
+  - 04models_cc.py
+      - if running on Compute Canada: easiest to use a .sh file with the arguments
+        model_name = sys.argv[1] (the model to use)
+        part = sys.argv[2] ('within' or 'between')
+        target = sys.argv[3] (3_classes, 5_classes, intensity, or rating)
+        (see example below)
+      - else: set your own bidsroot and log_dir and the arguments
+      - right now, the code sets target = 'intensity' or '3_classes' later in the code to prevent mix-ups
+        
+### .sh file:   
+#!/bin/bash
+#SBATCH --time=3:00:00
+#SBATCH --account=def-mpcoll
+#SBATCH --gpus=1
+#SBATCH --cpus-per-task=40
+#SBATCH --mem=186G
+#SBATCH --mail-user=mathilda.buschmann.1@ulaval.ca
+#SBATCH --mail-type=ALL
+#SBATCH --chdir=/lustre04/scratch/mabus103
+
+module load python/3.10
+
+virtualenv --no-download $SLURM_TMPDIR/env 
+
+source $SLURM_TMPDIR/env/bin/activate
+
+cp --verbose eegdecode_venv_wheel.zip $SLURM_TMPDIR/eegdecode_venv_wheel.zip
+
+unzip -o -n $SLURM_TMPDIR/eegdecode_venv_wheel.zip -d $SLURM_TMPDIR
+
+pip install --no-index --find-links=$SLURM_TMPDIR/eegdecode_venv_wheel -r $SLURM_TMPDIR/eegdecode_venv_wheel/requirements.txt
+
+pip list
+
+#model type, within or between particiants, target
+python /lustre04/scratch/mabus103/ML_for_Pain_Prediction/04models_cc.py "deep4netRegression" "within" 'intensity'
+
+
+#models:
+#"LogisticRegression"
+#"LinearRegression"
+
+#"SVC"
+#"SVR"
+
+#"RFClassifier"
+#"RFRegressor"
+
+#"ElasticNet"
+#"SGD"
+
+#"deep4netClassification"
+#"deep4netRegression"
+
+#"shallowFBCSPNetClassification"
+#"shallowFBCSPNetRegression"
+
+
+#targets
+#'3_classes'
+#'5_classes'
+#'rating'
+#'intensity'
+
+
+    
