@@ -11,14 +11,14 @@ code:
 - 04bayes_models_cc.py: Run the training with bayes grid search, needed it right now as its own file, but can be integrated into the other models script as an optiomn later
 - 04models.py basically the same as "04models_cc.py", used it to experiment in order to not mess anything up in the code I run in Compute Canada. Can be deleted.
 - 04models_cc.py: The code to run on Compute Canada to train models. Should always contain the current state of the code. To run it on Compute Canada, it expects the following arguments:
-    model_name = sys.argv[1]
-    part = sys.argv[2]
-    target = sys.argv[3]
+    model_name = sys.argv[1]\
+    part = sys.argv[2]\
+    target = sys.argv[3]\
   (as from 14.09.2023)
 - 05training_whole_data.py: Train the model on the whole datase, save the model. Expects the arguments
-    model_name = sys.argv[1]
-    part = sys.argv[2]
-    target = sys.argv[3]
+    model_name = sys.argv[1]\
+    part = sys.argv[2]\
+    target = sys.argv[3]\
     search_params = sys.argv[4] (True or False, whether to do Gridsearch to find Hyperparameters. If False, best Parameters need to inserted in the code)
 - 06_test_model.py: Test the model on new data. Still needs to be changed to use Aly's data (as of 14.09.2023)
 - tensorboard.py: show the tensorboard logs
@@ -41,30 +41,30 @@ results:
 - 02cleaning_epochs.py: exchange bidsroot for the path to your eeg data
 - preprocess_X.py: exchange bidsroot and log_dir for the path to your eeg data
 
-### Run the models
+### Run the training
 - 04models_cc.py
     - if running on Compute Canada: easiest to use a .sh file with the arguments
     model_name = sys.argv[1] (the model to use)\
     part = sys.argv[2] ('within' or 'between')\
     target = sys.argv[3] (3_classes, 5_classes, intensity, or rating)\
-    (see example below)\
+    (see example below)
     - else: set your own bidsroot and log_dir and the arguments
     - right now, the code sets target = 'intensity' or '3_classes' later in the code to prevent mix-ups
 
 ### Train models on whole dataset
 - 05training_whole_data.py
     - if running on Compute Canada: easiest to use a .sh file with the arguments
-    model_name = sys.argv[1] (the model to use)\\
-    part = sys.argv[2] ('within' or 'between')\\
-    target = sys.argv[3] (3_classes, 5_classes, intensity, or rating)\\
+    model_name = sys.argv[1] (the model to use)\
+    part = sys.argv[2] ('within' or 'between')\
+    target = sys.argv[3] (3_classes, 5_classes, intensity, or rating)\
     search_params = sys.argv[4] (whether to do grid search or not)
     - else: set your own bidsroot, log_dir, model_dir (where to save models) and the arguments
 
 ### Test on new data
 - 06_test_model.py
     - if running on Compute Canada: easiest to use a .sh file with the arguments
-    model_name = sys.argv[1] (the model to use)
-    part = sys.argv[2] ('within' or 'between')
+    model_name = sys.argv[1] (the model to use)\
+    part = sys.argv[2] ('within' or 'between')\
     target = sys.argv[3] (3_classes, 5_classes, intensity, or rating)
     - else: set your own bidsroot,  log_dir, model_dir (where to load models from) and the arguments
 
