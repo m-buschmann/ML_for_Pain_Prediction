@@ -30,6 +30,7 @@ results:
     - csvs: contains the files with scores, true labels, predicted labels and for standard ML the most common best parameters
     - logs: contains the tensorboard logs (accuracies, RMSE, r2). If there are several logs for one model, the last one is the latest. Inspect the logs either by running "tensorboard --logdir /path/to/log --port 6007" in a terminal or with the code tensorboard.py
 - folder "models": contains the models after training on whole data
+- folder "plots intensity and rating": contains the plots of comparision rating and intensity
 - plots xxx: results computed from my laptop, delete later
 - resultsxxx: results computed from my laptop, delete later
 - images: results computed from my laptop, delete later
