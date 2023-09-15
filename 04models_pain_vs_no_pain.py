@@ -134,7 +134,6 @@ else:
 
 # Define the groups (participants) to avoid splitting them across train and test
 groups = epochs.metadata["participant_id"].values
-metadata_df = epochs.metadata
 
 #____________________________________________________________________
 # Classification
@@ -463,10 +462,11 @@ print(model_name, part)
 
 #_____________________________________________________________________-
 # Training
-y_values = []
+
 
 # Set y (and X)
 if task == 'classification':
+    y_values = []
     epochs.metadata['task'].astype(str)
     for index, row in epochs.metadata.iterrows():
             if row['intensity'] >= 100 and (row['task'] == 'thermal' or row['task'] == 'thermalrate'):
