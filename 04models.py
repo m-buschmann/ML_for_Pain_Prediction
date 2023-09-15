@@ -36,11 +36,6 @@ from braindecode.preprocessing import exponential_moving_standardize
 #from pyriemann.classification import MDM, TSclassifier
 #from pyriemann.estimation import Covariances, Shrinkage
 
-# Set kind of Cross validation and task to perform 
-#part = 'between' # 'between' or 'within' participant
-#task = 'classification' # 'classification' or 'regression'
-#dl = True # Whether to use a deep learning or standard ML model
-
 #____________________________________________________________________________
 # Application of cross validation for different models
 # Load data
@@ -69,7 +64,6 @@ if cuda:
 
     bidsroot = '/lustre04/scratch/mabus103/normalized_data/normalized_epo.fif'
     log_dir=f'/lustre04/scratch/mabus103/logs'
-    #log_dir=f'/lustre04/scratch/mabus103/ML_for_Pain_Prediction/logs'
 elif 'media/mp' in current_directory: #MP's local machine
     model_name = "shallowFBCSPNetClassification"
     part = "between"
@@ -489,7 +483,7 @@ print(model_name, part)
 #_____________________________________________________________________-
 # Training
 
-# Set y (and X)
+# Set y
 if task == 'classification':
     epochs.metadata['task'].astype(str)
     if target == '3_classes':
@@ -512,7 +506,7 @@ elif task == 'regression':
     elif target == 'intensity':
         y = epochs.metadata["intensity"].values 
 
-
+# Check for same length
 print("groups:", len(groups))
 print("X:",len(X))
 print("y:",len(y))
