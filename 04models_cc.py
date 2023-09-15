@@ -489,7 +489,6 @@ print(model_name, part)
 
 # Set y (and X)
 if task == 'classification':
-    target == '3_classes' #take this out later! Just for now, to avoid mix up
     epochs.metadata['task'].astype(str)
     if target == '3_classes':
         y = [i.replace('rate', '') for i in epochs.metadata["task"].values]
@@ -497,7 +496,6 @@ if task == 'classification':
     elif target == '5_classes':
         y = epochs.metadata["task"].values
 elif task == 'regression':
-    target == 'intensity' #take this out later! Just for now, to avoid mix up
     if target == 'rating':
         y = epochs.metadata["rating"].values 
     elif target == 'intensity':
