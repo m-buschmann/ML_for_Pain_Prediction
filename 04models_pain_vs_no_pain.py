@@ -482,7 +482,7 @@ print("X:",len(X))
 print("y:",len(y))
 
 # Get writer for tensorboard
-writer = SummaryWriter(log_dir=opj(log_dir, model_name, part))
+writer = SummaryWriter(log_dir=opj(log_dir, model_name, f"{part}_pain_vs_no_pain"))
 
 # Train the EEG model using cross-validation
 if dl == False and part == 'within':
