@@ -14,11 +14,8 @@ from braindecode.models import ShallowFBCSPNet,Deep4Net, EEGNetv4
 from braindecode import EEGClassifier, EEGRegressor
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from skorch.callbacks import Checkpoint, EarlyStopping, LRScheduler, ProgressBar, EpochScoring
-from train_script_between_part import trainingDL_between, training_nested_cv_between
-from train_script_within_part import training_nested_cv_within, trainingDL_within
 import torch.nn as nn
 import pandas as pd
-from sklearn.pipeline import make_pipeline
 from tensorboardX import SummaryWriter
 from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
@@ -39,11 +36,6 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 
-# Set kind of Cross validation and task to perform 
-#part = 'between' # 'between' or 'within' participant
-#task = 'classification' # 'classification' or 'regression'
-#dl = True # Whether to use a deep learning or standard ML model
-
 #____________________________________________________________________________
 # Application of cross validation for different models
 # Load data
@@ -60,10 +52,10 @@ cc = "lustre" in current_directory
 # And set bidsroot according to device 
 if cuda:
     model_name = sys.argv[1]
-    part = sys.argv[2]
+    #part = sys.argv[2] probably not needed
     bsize = 16  
-    target = sys.argv[3]
-    search_params = sys.argv[4]
+    target = sys.argv[2]
+    search_params = sys.argv[3]
     if torch.cuda.is_available():
         device = torch.device('cuda')  # PyTorch will use the default GPU
         torch.backends.cudnn.benchmark = True
@@ -77,7 +69,7 @@ if cuda:
     #log_dir=f'/lustre04/scratch/mabus103/ML_for_Pain_Prediction/logs'
 elif 'media/mp' in current_directory: #MP's local machine
     model_name = "shallowFBCSPNetClassification"
-    part = "between"
+    #part = "between"
     target = "3_classes"
     search_params = False
     bsize = 16
@@ -87,7 +79,7 @@ elif 'media/mp' in current_directory: #MP's local machine
 
 elif "mplab" in current_directory:
     model_name = "shallowFBCSPNetClassification" #set the model to use. also determines dl and kind of task
-    part = 'between' # 'between' or 'within' participant
+    #part = 'between' # 'between' or 'within' participant
     target = "3_classes"
     search_params = False
     bsize = 16
@@ -97,9 +89,9 @@ elif "mplab" in current_directory:
     log_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/logs'
     model_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/models'
 else:
-    model_name = "SGD" #set the model to use. also determines dl and kind of task
-    part = 'between'# 'between' or 'within' participant
-    target = "intensity"
+    model_name = "deep4netClassification" #set the model to use. also determines dl and kind of task
+    #part = 'within'# 'between' or 'within' participant
+    target = "3_classes"
     search_params = False
     bsize = 16
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
@@ -163,7 +155,7 @@ else:
         X[epo, :, :] = exponential_moving_standardize(X[epo, :, :], factor_new=0.001, init_block_size=None) # Normalize the data
 
 # Define the groups (participants) to avoid splitting them across train and test
-groups = epochs.metadata["participant_id"].values
+#groups = epochs.metadata["participant_id"].values # I guess we don't need that here
 
 
 #____________________________________________________________________
@@ -277,11 +269,11 @@ elif model_name == "deep4netClassification":
     model = EEGClassifier(
         module=deep4net_classification,
         criterion=torch.nn.NLLLoss,
-        train_split=None, # None here, update intraining function
+        #train_split=None, # we don't have a training function, so split here?
         callbacks = [
             "balanced_accuracy",
             "accuracy",
-            ("checkpoint", Checkpoint(    dirname='best_model', f_history='best_model_checkpoint.json',
+            ("checkpoint", Checkpoint(    dirname= f'best_{model_name}', f_history=f'best_{model_name}_checkpoint.json',
                             f_criterion=None,
                             f_optimizer=None,
                             load_best=True,
@@ -298,8 +290,8 @@ elif model_name == "deep4netClassification":
         optimizer__lr = 0.0001,
         optimizer__weight_decay = 0.5 * 0.001, # As recommended on braindecode.org
         batch_size = bsize,
-        max_epochs=50,
-        iterator_valid__shuffle=False,
+        max_epochs=50, 
+        iterator_valid__shuffle=False, #could this be set to true?
         iterator_train__shuffle=True,
         device=device,
     )
@@ -329,8 +321,7 @@ elif model_name == "deep4netRegression":
     model = EEGRegressor(
         module=deep4net_regression,
         criterion=nn.MSELoss,
-        train_split=None, # None here, update intraining function
-
+        #train_split=None,  # we don't have a training function, so split here?
         #cropped=True,
         #criterion=CroppedLoss,
         #criterion__loss_function=torch.nn.functional.mse_loss,
@@ -338,7 +329,7 @@ elif model_name == "deep4netRegression":
             "neg_root_mean_squared_error",
             "neg_mean_absolute_error",
             "r2",
-            ("checkpoint", Checkpoint(    dirname='best_model', f_history='best_model_checkpoint.json',
+            ("checkpoint", Checkpoint(    dirname= f'best_{model_name}', f_history=f'best_{model_name}_checkpoint.json',
                             f_criterion=None,
                             f_optimizer=None,
                             load_best=True,
@@ -356,7 +347,7 @@ elif model_name == "deep4netRegression":
         optimizer__weight_decay = 0, # As recommended on braindecode.org
         batch_size = bsize,
         max_epochs=50,
-        iterator_valid__shuffle=False,
+        iterator_valid__shuffle=False, #True?
         iterator_train__shuffle=True,
         device=device,
     )
@@ -379,11 +370,11 @@ elif model_name == "shallowFBCSPNetClassification":
     model = EEGClassifier(
         module=shallow_fbcsp_net_classification,
         criterion=torch.nn.NLLLoss,
-        #train_split=None, # None here, update intraining function
+        #train_split=None,  # we don't have a training function, so split here?
         callbacks = [
             "balanced_accuracy",
 
-            ("checkpoint", Checkpoint(    dirname='best_model', f_history='best_model_checkpoint.json',
+            ("checkpoint", Checkpoint(    dirname= f'best_{model_name}', f_history=f'best_{model_name}_checkpoint.json',
                             f_criterion=None,
                             f_optimizer=None,
                             load_best=True,
@@ -401,7 +392,7 @@ elif model_name == "shallowFBCSPNetClassification":
         optimizer__weight_decay = 0, # As recommended on braindecode.org
         batch_size = bsize,
         max_epochs=50,
-        #iterator_valid__shuffle=False,
+        iterator_valid__shuffle=False, #True?
         iterator_train__shuffle=True,
         device=device,
     )
@@ -433,7 +424,7 @@ elif model_name == "shallowFBCSPNetRegression":
     model = EEGRegressor(
         module=shallow_fbcsp_net_regression,
         criterion=nn.MSELoss,
-        train_split=None, # None here, update intraining function
+        #train_split=None,  # we don't have a training function, so split here?
         #cropped=True,
         #criterion=CroppedLoss,
         #criterion__loss_function=torch.nn.functional.mse_loss,
@@ -441,7 +432,7 @@ elif model_name == "shallowFBCSPNetRegression":
             "neg_root_mean_squared_error",
             "r2",
             "neg_mean_absolute_error",
-            ("checkpoint", Checkpoint(    dirname='best_model', f_history='best_model_checkpoint.json',
+            ("checkpoint", Checkpoint(    dirname= f'best_{model_name}', f_history=f'best_{model_name}_checkpoint.json',
                             f_criterion=None,
                             f_optimizer=None,
                             load_best=True,
@@ -459,7 +450,7 @@ elif model_name == "shallowFBCSPNetRegression":
         optimizer__weight_decay = 0, # As recommended on braindecode.org
         batch_size = bsize,
         max_epochs=50,
-        iterator_valid__shuffle=False,
+        iterator_valid__shuffle=False, #True?
         iterator_train__shuffle=True,
         device=device,
     )
@@ -485,7 +476,7 @@ elif model_name == "shallowFBCSPNetRegression":
     task = 'classification'
     dl = False"""
 
-print(model_name, part)
+print(model_name)
 if dl == True:
     search_params = False
 
@@ -510,6 +501,7 @@ elif task == 'regression':
 
 #from skorch.utils import load_checkpoint
 
+# Example
 best_params = {
         'penalty' : 'l2',
         'alpha': 0.01,

@@ -10,11 +10,8 @@ from braindecode.models import ShallowFBCSPNet,Deep4Net, EEGNetv4
 from braindecode import EEGClassifier, EEGRegressor
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from skorch.callbacks import Checkpoint, EarlyStopping, LRScheduler, ProgressBar, EpochScoring
-from train_script_between_part import trainingDL_between, training_nested_cv_between
-from train_script_within_part import training_nested_cv_within, trainingDL_within
 import torch.nn as nn
 import pandas as pd
-from sklearn.pipeline import make_pipeline
 from tensorboardX import SummaryWriter
 from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
@@ -30,6 +27,7 @@ from braindecode.preprocessing import exponential_moving_standardize
 from sklearn.metrics import accuracy_score, mean_squared_error
 from sklearn.preprocessing import LabelEncoder
 from sklearn.pipeline import Pipeline
+from sklearn.metrics import r2_score
 
 
 
@@ -44,9 +42,8 @@ cc = "lustre" in current_directory
 # And set bidsroot according to device 
 if cuda:
     model_name = sys.argv[1]
-    part = sys.argv[2]
     bsize = 16  
-    target = sys.argv[3]
+    target = sys.argv[2]
     if torch.cuda.is_available():
         device = torch.device('cuda')  # PyTorch will use the default GPU
         torch.backends.cudnn.benchmark = True
@@ -59,7 +56,6 @@ if cuda:
     model_dir=f'/lustre04/scratch/mabus103/models'
 elif 'media/mp' in current_directory: #MP's local machine
     model_name = "shallowFBCSPNetClassification"
-    part = "between"
     target = "3_classes"
     bsize = 16
     device = torch.device('cuda')
@@ -68,7 +64,6 @@ elif 'media/mp' in current_directory: #MP's local machine
 
 elif "mplab" in current_directory:
     model_name = "SGD" #set the model to use. also determines dl and kind of task
-    part = 'between' # 'between' or 'within' participant
     target = "intensity"
     bsize = 16
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
@@ -78,7 +73,6 @@ elif "mplab" in current_directory:
     model_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/models'
 else:
     model_name = "shallowFBCSPNetClassification" #set the model to use. also determines dl and kind of task
-    part = 'between'# 'between' or 'within' participant
     target = "intensity"
     task = "regression"
     search_params = True
@@ -90,8 +84,12 @@ else:
     model_dir='/home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/models'
 
 data_path = opj(bidsroot)
-# Load epochs oject, is already normalized and some epochs removed on compute canada
+
+# Load epochs oject
 epochs = mne.read_epochs(data_path, preload=True)
+
+# Load the saved model
+model = joblib.load(model_dir)
 
 if cc:
     # load already normalized X
@@ -160,9 +158,6 @@ elif task == 'regression':
         y = epochs.metadata["intensity"].values 
 
 
-# Load the saved model
-model = joblib.load(model_dir)
-
 if dl:
     # Convert categorical labels to integer indices
     if task == "classification":
@@ -186,7 +181,7 @@ else:
         vectorizer = mne.decoding.Vectorizer()
         X = vectorizer.fit_transform(X)
 
-X_test= X[0:100] #just for testing code
+X_test= X[0:100] #just for testing code on my laptop from 0 to 100
 y_test = y[0:100]    
 
 # Make predictions on the test data
@@ -200,4 +195,5 @@ if task == "classification":
 else:
     rmse = np.sqrt(mean_squared_error(y_test, y_pred))
     print(f"RMSE on Test Data: {rmse:.2f}")
+    r2 = r2_score(y_test, y_pred)
 
