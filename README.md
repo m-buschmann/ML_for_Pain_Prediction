@@ -1,7 +1,7 @@
 # ML_for_Pain_Prediction
 
 ## overview
-###code: 
+### code: 
 - 01eeg_preprocess.py: preprocessing of the EEG data
 - 02cleaning_epochs.py: rejecting epochs, adding metadata, resample, build one file out of all the epochs (still contains some code in the end that's only necessary with low memory, we can remove that when it's no longer needed)
 - train_script_between_part.py: contains training for DL and standard ML between participants
@@ -24,7 +24,7 @@
 - tensorboard.py: show the tensorboard logs
 - preprocess_X.py: Remove epochs with too high difference in intensity and standardize X. This data is only used on Compute Canada. On other computers, this will be done when running 04models_cc.py
 
-###results:
+### results:
 - folder "results": the results from Compute Canada. Needs to be updated when we have all results
     - confusion matrices: contains the confusion matrices from the classification task for all models
     - csvs: contains the files with scores, true labels, predicted labels and for standard ML the most common best parameters
@@ -36,7 +36,7 @@
 - images: results computed from my laptop, delete later
 - logs: results computed from my laptop, delete later
 
-###other:
+### other:
 - EEG Markers of Pain.pptx: my powerpoint from the presentation
 
 ## How to use
