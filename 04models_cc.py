@@ -84,9 +84,9 @@ elif "mplab" in current_directory:
     bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
     log_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/logs'
 else:
-    model_name = "SGD" #set the model to use. also determines dl and kind of task
-    part = 'between'# 'between' or 'within' participant
-    target = "intensity"
+    model_name = "deep4netClassification" #set the model to use. also determines dl and kind of task
+    part = 'within'# 'between' or 'within' participant
+    target = "pain"
     optimizer_lr = 0.000625
     bsize = 16
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
@@ -160,6 +160,8 @@ n_chans = len(epochs.info['ch_names'])
 input_window_samples=X.shape[2]
 if target == "3_classes" or target =="5_classes":
     n_classes_clas=int(target[0])
+elif target == "pain":
+    n_classes_clas = 2
 
 
 #__________________________________________________________________
@@ -481,7 +483,7 @@ print(model_name, part)
 #_____________________________________________________________________-
 # Training
 
-# Set y 
+# Set y
 if task == 'classification':
     epochs.metadata['task'].astype(str)
     if target == '3_classes':
@@ -489,6 +491,15 @@ if task == 'classification':
         y = np.array(y)
     elif target == '5_classes':
         y = epochs.metadata["task"].values
+    elif target == 'pain':
+        y_values = []
+        for index, row in epochs.metadata.iterrows():
+                if row['intensity'] >= 100 and (row['task'] == 'thermal' or row['task'] == 'thermalrate'):
+                    y_values.append("pain")
+                else:
+                    y_values.append("no pain")
+        y = np.array(y_values)
+
 elif task == 'regression':
     if target == 'rating':
         y = epochs.metadata["rating"].values 
@@ -501,7 +512,7 @@ print("X:",len(X))
 print("y:",len(y))
 
 # Get writer for tensorboard
-writer = SummaryWriter(log_dir=opj(log_dir, model_name, part))
+writer = SummaryWriter(log_dir=opj(log_dir, model_name, f"{part}_{target}"))
 
 # Train the EEG model using cross-validation
 if dl == False and part == 'within':
@@ -519,7 +530,7 @@ writer.close()
 # Specify the file path for storing the results
 output_dir = f"results{model_name}"
 os.makedirs(output_dir, exist_ok=True)  # Create the directory if it doesn't exist
-output_file = os.path.join(output_dir, f"{part}.csv")
+output_file = os.path.join(output_dir, f"{part}_{target}.csv")
 
 # Determine the length of the data
 data_length = len(all_true_labels)
@@ -644,12 +655,19 @@ if task == 'classification':
         legend_elements = [plt.Line2D([0], [0], marker='o', color='w', label=f"{label}: {text}", markersize=10, markerfacecolor='b') for label, text in legend_labels.items()]
         plt.legend(handles=legend_elements, title="Legend")
     
+    elif dl == True and target == 'pain':
+        target_names = ["no pain", "pain"]
+        legend_labels = {
+            0: 'no pain',
+            1: "pain",
+        }
+
     plt.show()
 
     # Save the confusion matrix plot as an image file
     output_dir = f"images/confusion_matrix{model_name}"
     os.makedirs(output_dir, exist_ok=True)  # Create the directory if it doesn't exist
-    output_file = os.path.join(output_dir, f"{part}.png")
+    output_file = os.path.join(output_dir, f"{part}_{target}.png")
     plt.savefig(output_file)
 
 # Run this in Terminal to see tensorboard
