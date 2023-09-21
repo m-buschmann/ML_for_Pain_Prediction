@@ -27,9 +27,11 @@ import os
 import joblib
 from sklearn.linear_model import ElasticNet
 import sys
+import skorch
 from braindecode.preprocessing import exponential_moving_standardize
 #from pyriemann.classification import MDM, TSclassifier
 #from pyriemann.estimation import Covariances, Shrinkage
+from sklearn.model_selection import train_test_split, GroupKFold, KFold, GridSearchCV, GroupShuffleSplit
 
 from sklearn.model_selection import GridSearchCV
 from sklearn.pipeline import Pipeline
@@ -155,7 +157,7 @@ else:
         X[epo, :, :] = exponential_moving_standardize(X[epo, :, :], factor_new=0.001, init_block_size=None) # Normalize the data
 
 # Define the groups (participants) to avoid splitting them across train and test
-#groups = epochs.metadata["participant_id"].values # I guess we don't need that here
+groups = epochs.metadata["participant_id"].values 
 
 
 #____________________________________________________________________
@@ -269,13 +271,14 @@ elif model_name == "deep4netClassification":
     model = EEGClassifier(
         module=deep4net_classification,
         criterion=torch.nn.NLLLoss,
-        #train_split=None, # we don't have a training function, so split here?
+        train_split=None, # None here, update in training function
         callbacks = [
             "balanced_accuracy",
             "accuracy",
-            ("checkpoint", Checkpoint(    dirname= f'best_{model_name}', f_history=f'best_{model_name}_checkpoint.json',
+            ("checkpoint", Checkpoint(
                             f_criterion=None,
                             f_optimizer=None,
+                            f_history=None,
                             load_best=True,
                         )),
 
@@ -290,8 +293,8 @@ elif model_name == "deep4netClassification":
         optimizer__lr = 0.0001,
         optimizer__weight_decay = 0.5 * 0.001, # As recommended on braindecode.org
         batch_size = bsize,
-        max_epochs=50, 
-        iterator_valid__shuffle=False, #could this be set to true?
+        max_epochs=2,
+        iterator_valid__shuffle=False,
         iterator_train__shuffle=True,
         device=device,
     )
@@ -321,7 +324,7 @@ elif model_name == "deep4netRegression":
     model = EEGRegressor(
         module=deep4net_regression,
         criterion=nn.MSELoss,
-        #train_split=None,  # we don't have a training function, so split here?
+        train_split=None, #skorch.dataset.ValidSplit(5),
         #cropped=True,
         #criterion=CroppedLoss,
         #criterion__loss_function=torch.nn.functional.mse_loss,
@@ -370,7 +373,7 @@ elif model_name == "shallowFBCSPNetClassification":
     model = EEGClassifier(
         module=shallow_fbcsp_net_classification,
         criterion=torch.nn.NLLLoss,
-        #train_split=None,  # we don't have a training function, so split here?
+        train_split=None,      
         callbacks = [
             "balanced_accuracy",
 
@@ -424,7 +427,7 @@ elif model_name == "shallowFBCSPNetRegression":
     model = EEGRegressor(
         module=shallow_fbcsp_net_regression,
         criterion=nn.MSELoss,
-        #train_split=None,  # we don't have a training function, so split here?
+        train_split=None,  # we don't have a training function, so split here
         #cropped=True,
         #criterion=CroppedLoss,
         #criterion__loss_function=torch.nn.functional.mse_loss,
@@ -508,6 +511,11 @@ best_params = {
     }
 
 
+# Specify the file path for storing the results
+output_dir = f"training_on_whole_data_results"
+os.makedirs(output_dir, exist_ok=True)  # Create the directory if it doesn't exist
+output_file = os.path.join(output_dir, f"{model_name}_{target}.csv")
+
 if dl:
     # Convert categorical labels to integer indices
     if task == "classification":
@@ -525,7 +533,37 @@ if dl:
 
     X = X.astype(np.int64)
 
-    model.fit(X, y)
+    unique_participants = np.unique(groups)
+
+    test_group_count = int(0.3 * len(unique_participants))
+    test_group = np.random.choice(unique_participants, test_group_count, replace=False)
+
+    # Create masks for selecting data points belonging to the test and training groups
+    test_mask = np.isin(groups, test_group)
+    train_mask = ~test_mask
+
+    # Split your data into training and test sets based on the masks
+    X_train = X[train_mask]
+    y_train = y[train_mask]
+    X_test = X[test_mask]
+    y_test = y[test_mask]
+
+    # Train your model on X_train and y_train
+    model.fit(X_train, y_train)
+
+    y_pred = model.predict(X_test)
+
+    print(y_test)
+    print(y_pred)
+
+    # Create a DataFrame
+    data = pd.DataFrame({
+        "True Label": y,
+        "Predicted Label": y_pred
+    })
+
+    # Write the DataFrame to a CSV file
+    data.to_csv(output_file, index=False)
 
     # Save the final model to a file
     joblib.dump(model, f'{model_dir}{model_name}_{target}.joblib')

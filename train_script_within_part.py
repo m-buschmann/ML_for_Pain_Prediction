@@ -212,7 +212,7 @@ def training_nested_cv_within(model, X, y, parameters, task = 'regression', nfol
             clf_fold = GridSearchCV(clf_fold, parameters, cv = KFold(n_inner_splits).split(X_train_fold, y_train_fold), refit = True)
             clf_fold.fit(X_train_fold, y_train_fold)
 
-            # # Store best parameters for each fold
+            # Store best parameters for each fold
             best_params_fold = clf_fold.best_params_
             best_params_counts.update([str(best_params_fold)])
             best_params_per_fold[participant] = best_params_fold
