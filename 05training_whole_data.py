@@ -535,7 +535,7 @@ if dl:
 
     unique_participants = np.unique(groups)
 
-    test_group_count = int(0.3 * len(unique_participants))
+    test_group_count = int(0.2 * len(unique_participants))
     test_group = np.random.choice(unique_participants, test_group_count, replace=False)
 
     # Create masks for selecting data points belonging to the test and training groups
