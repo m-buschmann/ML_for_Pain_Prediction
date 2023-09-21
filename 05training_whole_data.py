@@ -28,12 +28,12 @@ import joblib
 from sklearn.linear_model import ElasticNet
 import sys
 import skorch
+from skorch.helper import predefined_split
 from braindecode.preprocessing import exponential_moving_standardize
 #from pyriemann.classification import MDM, TSclassifier
 #from pyriemann.estimation import Covariances, Shrinkage
 from sklearn.model_selection import train_test_split, GroupKFold, KFold, GridSearchCV, GroupShuffleSplit
-
-from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import accuracy_score, r2_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
@@ -41,7 +41,6 @@ from sklearn.model_selection import train_test_split
 #____________________________________________________________________________
 # Application of cross validation for different models
 # Load data
-
 
 # Get the current working directory
 current_directory = os.getcwd()
@@ -67,13 +66,13 @@ if cuda:
 
     bidsroot = '/lustre04/scratch/mabus103/normalized_data/normalized_epo.fif'
     log_dir=f'/lustre04/scratch/mabus103/logs'
-    model_dir=f'/lustre04/scratch/mabus103/models/'
+    model_dir=f'/lustre04/scratch/mabus103/trained_models/'
     #log_dir=f'/lustre04/scratch/mabus103/ML_for_Pain_Prediction/logs'
 elif 'media/mp' in current_directory: #MP's local machine
     model_name = "shallowFBCSPNetClassification"
     #part = "between"
     target = "3_classes"
-    search_params = False
+    search_params = True
     bsize = 16
     device = torch.device('cuda')
     bidsroot = 'data/cleaned_epo.fif'
@@ -89,18 +88,20 @@ elif "mplab" in current_directory:
     #bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/cleaned_epo.fif'
     bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
     log_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/logs'
-    model_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/models'
+    model_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/trained_models/'
 else:
-    model_name = "deep4netClassification" #set the model to use. also determines dl and kind of task
+    model_name = "SGD" # LogisticRegression" #"LogisticRegression" #set the model to use. also determines dl and kind of task
     #part = 'within'# 'between' or 'within' participant
-    target = "3_classes"
+    target = "intensity"
     search_params = False
     bsize = 16
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
     bidsroot = '/home/mathilda/MITACS/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
     log_dir='/home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/logs'
-    model_dir='/home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/models/'
+    model_dir='/home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/trained_models/'
 
+# Create the directory if it doesn't exist
+os.makedirs(model_dir, exist_ok=True)
 data_path = opj(bidsroot)
 # Load epochs oject, is already normalized and some epochs removed on compute canada
 epochs = mne.read_epochs(data_path, preload=True)
@@ -176,10 +177,10 @@ if target == "3_classes" or target =="5_classes":
 if model_name == "LogisticRegression":
     model= LogisticRegression()
     parameters = {
-        'logisticregression__n_jobs' : [-1],
-        'logisticregression__solver': ['saga'],
-        'logisticregression__penalty': ['l1', 'l2', None],
-        'logisticregression__C': [0.1, 1, 10, 100],
+        #'n_jobs' : [-1],
+        'solver': ['saga'],
+        'penalty': ['l1', 'l2', None],
+        #'C': [0.1, 1, 10, 100],
     }
     task = 'classification'
     dl = False
@@ -187,7 +188,7 @@ if model_name == "LogisticRegression":
 elif model_name == "LinearRegression":
     model = LinearRegression()
     parameters = {
-        'linearregression__n_jobs': [-1]
+        #'n_jobs': [-1]
     }
     task = 'regression'
     dl = False
@@ -195,10 +196,10 @@ elif model_name == "LinearRegression":
 elif model_name == "SVC":
     model = svm.SVC()
     parameters = { 
-        'svc__C': [0.1, 1, 10],
-        'svc__kernel': ['linear', 'poly', 'rbf', 'sigmoid'],
-        'svc__gamma': ['scale', 'auto', 0.1, 1, 10],
-        'svc__shrinking': [True, False],
+        'C': [0.1, 1, 10],
+        'kernel': ['linear', 'poly', 'rbf', 'sigmoid'],
+        'gamma': ['scale', 'auto', 0.1, 1, 10],
+        'shrinking': [True, False],
     }
     task = 'classification'
     dl = False
@@ -206,10 +207,10 @@ elif model_name == "SVC":
 elif model_name == "SVR":
     model = svm.SVR()
     parameters = {
-        'svr__kernel': ['linear', 'rbf'],
-        'svr__C': [0.1, 1, 10],
-        'svr__epsilon': [0.01, 0.1, 0.2],
-        'svr__shrinking': [True, False]
+        'kernel': ['linear', 'rbf'],
+        'C': [0.1, 1, 10],
+        'epsilon': [0.01, 0.1, 0.2],
+        'shrinking': [True, False]
     }
     task = 'regression'
     dl = False
@@ -217,12 +218,12 @@ elif model_name == "SVR":
 elif model_name == "RFClassifier":
     model = RandomForestClassifier()
     parameters = {
-        'randomforestclassifier__n_jobs' : [-1],
-        'randomforestclassifier__n_estimators': [50, 100, 200],
-        'randomforestclassifier__max_depth': [None, 10, 20],
-        'randomforestclassifier__min_samples_split': [2, 5, 10],
-        'randomforestclassifier__min_samples_leaf': [1, 2, 4],
-        'randomforestclassifier__bootstrap': [True, False]
+        #'n_jobs' : [-1],
+        'n_estimators': [50, 100, 200],
+        'max_depth': [None, 10, 20],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4],
+        'bootstrap': [True, False]
     }
     task = 'classification'
     dl = False
@@ -230,7 +231,7 @@ elif model_name == "RFClassifier":
 elif model_name == "RFRegressor":
     model = RandomForestRegressor()
     parameters = {
-        'n_jobs' : [-1],
+        #'n_jobs' : [-1],
         'n_estimators': [50, 100, 200],
         'max_depth': [None, 10, 20],
         'min_samples_split': [2, 5, 10],
@@ -293,7 +294,7 @@ elif model_name == "deep4netClassification":
         optimizer__lr = 0.0001,
         optimizer__weight_decay = 0.5 * 0.001, # As recommended on braindecode.org
         batch_size = bsize,
-        max_epochs=2,
+        max_epochs=50,
         iterator_valid__shuffle=False,
         iterator_train__shuffle=True,
         device=device,
@@ -526,16 +527,21 @@ if dl:
         label_mapping = dict(zip(np.unique(y), label_encoder.classes_))
         print("Label mapping:")
         for integer_label, original_label in label_mapping.items():
-            print(f"{integer_label} -> {original_label}")        
+            print(f"{integer_label} -> {original_label}")  
+            
     else:
         # Convert numerical labels to float
         y = torch.tensor(y, dtype=torch.float32)
 
+    # Determine the length of the data
+    data_length = len(y)
+    
     X = X.astype(np.int64)
 
     unique_participants = np.unique(groups)
 
-    test_group_count = int(0.2 * len(unique_participants))
+    # How much of the data to use for validation
+    test_group_count = int(0.2 * len(unique_participants)) 
     test_group = np.random.choice(unique_participants, test_group_count, replace=False)
 
     # Create masks for selecting data points belonging to the test and training groups
@@ -545,31 +551,47 @@ if dl:
     # Split your data into training and test sets based on the masks
     X_train = X[train_mask]
     y_train = y[train_mask]
-    X_test = X[test_mask]
-    y_test = y[test_mask]
+    X_val = X[test_mask]
+    y_val = y[test_mask]
 
+    if task == "regression":
+        # Unsqueeze to get same shape as output
+        y_val = y_val.unsqueeze(1)
+        y_train = y_train.unsqueeze(1)
+
+
+    # Set the model's train split
+    model.set_params(**{'train_split': predefined_split(skorch.dataset.Dataset(X_val, y_val))})
+    
     # Train your model on X_train and y_train
     model.fit(X_train, y_train)
 
-    y_pred = model.predict(X_test)
+    # Predict whole dataset
+    y_pred = model.predict(X).squeeze()
 
-    print(y_test)
-    print(y_pred)
+    if task == 'classification':
+        score = accuracy_score(y, y_pred) 
+    else:
+        score = r2_score(y, y_pred)
+
+    # Collect training history
+    training_history = model.history
 
     # Create a DataFrame
     data = pd.DataFrame({
         "True Label": y,
-        "Predicted Label": y_pred
+        "Predicted Label": y_pred,
+        "Test Scores (r2 or accuracy)": [score] + ["_"] * (data_length - 1),
     })
-
+ 
     # Write the DataFrame to a CSV file
     data.to_csv(output_file, index=False)
 
     # Save the final model to a file
     joblib.dump(model, f'{model_dir}{model_name}_{target}.joblib')
-    #torch.save(model.state_dict(), f'{model_dir}_{model_name}_{target}.pth')
-
-
+    # Save the training history to a separate file
+    history_filename = f'{model_dir}{model_name}_{target}_history.joblib'
+    joblib.dump(training_history, history_filename)
 
 elif search_params:
     if task == "regression":
@@ -583,15 +605,51 @@ elif search_params:
         vectorizer = mne.decoding.Vectorizer()
         X = vectorizer.fit_transform(X)
 
-    # Create a GridSearchCV object
-    grid_search = GridSearchCV(n_jobs=-1, estimator=model, param_grid=parameters, cv=10, scoring=scoring)
+    # Determine the length of the data
+    data_length = len(y)
 
-    # Fit (train) the GridSearchCV object on your data
+    # Create a GridSearchCV object
+    grid_search = GridSearchCV(n_jobs=-1, estimator=model, cv=GroupKFold(5).split(X, y, groups), param_grid=parameters, scoring=scoring, return_train_score=True)
+
+    # Fit the GridSearchCV object on data
     grid_search.fit(X, y)
 
-    # Get the best parameters and the best estimator (model)
-    best_params = grid_search.best_params_
+    y_pred = grid_search.predict(X)
+
+    if task == 'classification':
+        score = accuracy_score(y, y_pred) 
+    else:
+        score = r2_score(y, y_pred)
+
+    # Get the best parameters and the best estimator (model) for each fold
+    #best_params_per_fold = []
+    #scores_per_fold = []
+
+    #for fold_idx in range(grid_search.n_splits_):
+        #fold_best_params = grid_search.cv_results_[f'params'][grid_search.best_index_]
+        #fold_score = grid_search.cv_results_['mean_test_score'][fold_idx]
+        #scores_per_fold.append(fold_score)
+        #best_params_per_fold.append(fold_best_params)
+
+    # Convert the best parameters for each fold to JSON strings and remove commas
+    #best_params = [json.dumps(params, separators=(',', ':')).replace(',', ';') for params in best_params_per_fold]
+
     best_model = grid_search.best_estimator_
+    best_params = grid_search.best_params_
+    best_params = json.dumps(best_params, separators=(',', ':'))
+    # Replace commas with semicolons
+    best_params = best_params.replace(',', ';')
+
+    # Create a DataFrame
+    data = pd.DataFrame({
+        "True Label": y,
+        "Predicted Label": y_pred,
+        "Test Scores (r2 or accuracy)": [score] + ["_"] * (data_length - 1),
+        "Parameters" : [best_params] + ["_"] * (data_length - 1)
+    })
+
+    # Write the DataFrame to a CSV file
+    data.to_csv(output_file, index=False)
 
     # Optionally, you can save the best model to a file
     joblib.dump(best_model, f'{model_dir}{model_name}_{target}.joblib')
@@ -606,8 +664,33 @@ else:
         vectorizer = mne.decoding.Vectorizer()
         X = vectorizer.fit_transform(X)
 
-    # Fit (train) the model on the full dataset
+    # Determine the length of the data
+    data_length = len(y)
+
+    # Fit the model on the full dataset
     best_model.fit(X, y)
+
+    y_pred = best_model.predict(X)
+
+    if task == 'classification':
+        score = accuracy_score(y, y_pred) 
+    else:
+        score = r2_score(y, y_pred)
+
+    # Convert the best parameters for each fold to JSON strings and remove commas
+    #best_params = [json.dumps(params, separators=(',', ':')).replace(',', ';') for params in best_params]
+    best_params = json.dumps(best_params, separators=(',', ':'))
+
+    # Create a DataFrame
+    data = pd.DataFrame({
+        "True Label": y,
+        "Predicted Label": y_pred,
+        "Test Scores (r2 or accuracy)": [score] + ["_"] * (data_length - 1),
+        "Defined best Parameters" : [best_params] + ["_"] * (data_length - 1)
+    })
+
+    # Write the DataFrame to a CSV file
+    data.to_csv(output_file, index=False)
 
     # Save the model to a file
     joblib.dump(best_model, f'{model_dir}{model_name}_{target}.joblib')
