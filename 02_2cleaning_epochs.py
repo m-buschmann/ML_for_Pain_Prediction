@@ -128,7 +128,12 @@ for p in part:
 
 # Concatenate the cleaned epochs of all participants
 all_epochs = None
-bidsroot ='/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/epochs_clean_3'
+if "lustre" in current_directory:
+    bidsroot = '/lustre04/scratch/mabus103/2023_eegmarkers/derivatives/epochs_clean'
+else:
+    bidsroot = '/home/mathilda/MITACS/Project/2023_eegmarkers/derivatives/epochs_clean'
+
+#bidsroot ='/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/epochs_clean_3'
 part = sorted([s for s in os.listdir(bidsroot) if "sub-" in s])
 derivpath = opj(bidsroot)
 

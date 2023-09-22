@@ -519,7 +519,7 @@ print("X:",len(X))
 print("y:",len(y))
 
 # Get writer for tensorboard
-writer = SummaryWriter(log_dir=opj(log_dir, model_name, f"{part}_{target}"))
+writer = SummaryWriter(log_dir=opj(log_dir, model_name, f"{part}_{target}_with_undersampler"))
 
 # Train the EEG model using cross-validation
 if dl == False and part == 'within':
@@ -537,7 +537,7 @@ writer.close()
 # Specify the file path for storing the results
 output_dir = f"results{model_name}"
 os.makedirs(output_dir, exist_ok=True)  # Create the directory if it doesn't exist
-output_file = os.path.join(output_dir, f"{part}_{target}.csv")
+output_file = os.path.join(output_dir, f"{part}_{target}_with_undersampler.csv")
 
 # Determine the length of the data
 data_length = len(all_true_labels)
@@ -674,7 +674,7 @@ if task == 'classification':
     # Save the confusion matrix plot as an image file
     output_dir = f"images/confusion_matrix{model_name}"
     os.makedirs(output_dir, exist_ok=True)  # Create the directory if it doesn't exist
-    output_file = os.path.join(output_dir, f"{part}_{target}.png")
+    output_file = os.path.join(output_dir, f"{part}_{target}_with_undersampler.png")
     plt.savefig(output_file)
 
 # Run this in Terminal to see tensorboard
