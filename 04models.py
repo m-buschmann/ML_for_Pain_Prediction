@@ -501,8 +501,10 @@ if task == 'classification':
                     y_values.append("no pain")
         y = np.array(y_values)
         print('Original dataset shape %s' % Counter(y))
+        X_flat = X.reshape(X.shape[0], -1)
         rus = RandomUnderSampler(random_state=42)
-        X, y = rus.fit_resample(X, y)
+        X_resampled, y = rus.fit_resample(X_flat, y)
+        X = X_resampled.reshape(X.shape[0], X.shape[1], X.shape[2])
         print('Resampled dataset shape %s' % Counter(y))
 
 
