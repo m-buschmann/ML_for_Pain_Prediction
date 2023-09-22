@@ -500,6 +500,7 @@ if task == 'classification':
                 else:
                     y_values.append("no pain")
         y = np.array(y_values)
+        # Only use as much 'no pain' data as 'pain' data
         print('Original dataset shape %s' % Counter(y))
         X_flat = X.reshape(X.shape[0], -1)
         rus = RandomUnderSampler(random_state=42)
@@ -507,7 +508,10 @@ if task == 'classification':
         n = len(y)
         X = X_resampled.reshape(n, X.shape[1], X.shape[2])
         print('Resampled dataset shape %s' % Counter(y))
-
+        # Get indices that are kept in the data
+        selected_indices = rus.sample_indices_
+        # Use these indices to filter the 'groups' array
+        groups = groups[selected_indices]
 
 elif task == 'regression':
     if target == 'rating':
