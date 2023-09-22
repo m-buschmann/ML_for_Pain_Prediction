@@ -504,7 +504,7 @@ if task == 'classification':
         X_flat = X.reshape(X.shape[0], -1)
         rus = RandomUnderSampler(random_state=42)
         X_resampled, y = rus.fit_resample(X_flat, y)
-        n = Counter(y)
+        n = len(y)
         X = X_resampled.reshape(n, X.shape[1], X.shape[2])
         print('Resampled dataset shape %s' % Counter(y))
 
