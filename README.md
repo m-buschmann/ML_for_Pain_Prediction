@@ -2,6 +2,9 @@
 
 ## overview
 ### code: 
+- 0x_1xxx: code that processes the original data from McGill
+- 0x_2xxx: code that processes the new data from Aly
+  
 - 01eeg_preprocess.py: preprocessing of the EEG data
 - 02cleaning_epochs.py: rejecting epochs, adding metadata, resample, build one file out of all the epochs (still contains some code in the end that's only necessary with low memory, we can remove that when it's no longer needed)
 - train_script_between_part.py: contains training for DL and standard ML between participants
