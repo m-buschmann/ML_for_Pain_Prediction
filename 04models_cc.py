@@ -33,6 +33,8 @@ import json
 from sklearn.linear_model import ElasticNet
 import sys
 from braindecode.preprocessing import exponential_moving_standardize
+from imblearn.under_sampling import RandomUnderSampler
+from collections import Counter
 #from pyriemann.classification import MDM, TSclassifier
 #from pyriemann.estimation import Covariances, Shrinkage
 
@@ -86,7 +88,7 @@ elif "mplab" in current_directory:
 else:
     model_name = "deep4netClassification" #set the model to use. also determines dl and kind of task
     part = 'within'# 'between' or 'within' participant
-    target = "pain"
+    target = "pain" #intensity, rating, 3_classes, 5_classes, pain, pain_with_us
     optimizer_lr = 0.000625
     bsize = 16
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
@@ -160,7 +162,7 @@ n_chans = len(epochs.info['ch_names'])
 input_window_samples=X.shape[2]
 if target == "3_classes" or target =="5_classes":
     n_classes_clas=int(target[0])
-elif target == "pain":
+elif target == "pain" or target == "pain_with_us":
     n_classes_clas = 2
 
 
@@ -499,6 +501,26 @@ if task == 'classification':
                 else:
                     y_values.append("no pain")
         y = np.array(y_values)
+    elif target == 'pain_with_us':
+        y_values = []
+        for index, row in epochs.metadata.iterrows():
+                if row['intensity'] >= 100 and (row['task'] == 'thermal' or row['task'] == 'thermalrate'):
+                    y_values.append("pain")
+                else:
+                    y_values.append("no pain")
+        y = np.array(y_values)
+        # Only use as much 'no pain' data as 'pain' data
+        print('Original dataset shape %s' % Counter(y))
+        X_flat = X.reshape(X.shape[0], -1)
+        rus = RandomUnderSampler(random_state=42)
+        X_resampled, y = rus.fit_resample(X_flat, y)
+        n = len(y)
+        X = X_resampled.reshape(n, X.shape[1], X.shape[2])
+        print('Resampled dataset shape %s' % Counter(y))
+        # Get indices that are kept in the data
+        selected_indices = rus.sample_indices_
+        # Use these indices to filter the 'groups' array
+        groups = groups[selected_indices]
 
 elif task == 'regression':
     if target == 'rating':
@@ -655,7 +677,7 @@ if task == 'classification':
         legend_elements = [plt.Line2D([0], [0], marker='o', color='w', label=f"{label}: {text}", markersize=10, markerfacecolor='b') for label, text in legend_labels.items()]
         plt.legend(handles=legend_elements, title="Legend")
     
-    elif dl == True and target == 'pain':
+    elif dl == True and (target == 'pain' or target == "pain_with_us"):
         target_names = ["no pain", "pain"]
         legend_labels = {
             0: 'no pain',
