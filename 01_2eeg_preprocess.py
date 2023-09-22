@@ -22,8 +22,15 @@ from meegkit import dss
 
 ###############################
 # Parameters
-###############################
-bidsroot = '/home/mathilda/MITACS/Project/2023_eegmarkers'
+################################
+
+# Get the current working directory
+current_directory = os.getcwd()
+
+if "lustre" in current_directory:
+    bidsroot = '/lustre04/scratch/mabus103/2023_eegmarkers'
+else:
+    bidsroot = '/home/mathilda/MITACS/Project/2023_eegmarkers'
 
 # Get participants
 part = sorted([s for s in os.listdir(bidsroot) if "sub-" in s])
