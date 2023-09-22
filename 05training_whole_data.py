@@ -90,10 +90,9 @@ elif "mplab" in current_directory:
     log_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/logs'
     model_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/trained_models/'
 else:
-    model_name = "SGD" # LogisticRegression" #"LogisticRegression" #set the model to use. also determines dl and kind of task
-    #part = 'within'# 'between' or 'within' participant
-    target = "intensity"
-    search_params = False
+    model_name = "LogisticRegression" #"LogisticRegression" #set the model to use. also determines dl and kind of task
+    target = "3_classes"
+    search_params = True
     bsize = 16
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
     bidsroot = '/home/mathilda/MITACS/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
@@ -180,7 +179,7 @@ if model_name == "LogisticRegression":
         #'n_jobs' : [-1],
         'solver': ['saga'],
         'penalty': ['l1', 'l2', None],
-        #'C': [0.1, 1, 10, 100],
+        'C': [0.1, 1, 10, 100],
     }
     task = 'classification'
     dl = False
@@ -573,7 +572,7 @@ if dl:
         score = accuracy_score(y, y_pred) 
     else:
         score = r2_score(y, y_pred)
-
+    
     # Collect training history
     training_history = model.history
 
@@ -621,18 +620,20 @@ elif search_params:
     else:
         score = r2_score(y, y_pred)
 
-    # Get the best parameters and the best estimator (model) for each fold
-    #best_params_per_fold = []
-    #scores_per_fold = []
+    # Convert NumPy arrays to lists in grid_search.cv_results_
+    cv_results_serializable = {}
+    for key, value in grid_search.cv_results_.items():
+        if isinstance(value, np.ndarray):
+            cv_results_serializable[key] = value.tolist()
+        else:
+            cv_results_serializable[key] = value
 
-    #for fold_idx in range(grid_search.n_splits_):
-        #fold_best_params = grid_search.cv_results_[f'params'][grid_search.best_index_]
-        #fold_score = grid_search.cv_results_['mean_test_score'][fold_idx]
-        #scores_per_fold.append(fold_score)
-        #best_params_per_fold.append(fold_best_params)
+    # Serialize the modified cv_results as JSON
+    results_json = json.dumps(cv_results_serializable, separators=(',', ':'))
 
-    # Convert the best parameters for each fold to JSON strings and remove commas
-    #best_params = [json.dumps(params, separators=(',', ':')).replace(',', ';') for params in best_params_per_fold]
+    # Save the JSON to a file
+    with open(output_file.replace(".csv", "_gridsearchs_scores.json"), "w") as json_file:
+        json_file.write(results_json)
 
     best_model = grid_search.best_estimator_
     best_params = grid_search.best_params_
