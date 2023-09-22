@@ -167,7 +167,8 @@ n_chans = len(epochs.info['ch_names'])
 input_window_samples=X.shape[2]
 if target == "3_classes" or target =="5_classes":
     n_classes_clas=int(target[0])
-
+elif target == "pain":
+    n_classes_clas = 2
 
 #__________________________________________________________________
 # Models
@@ -179,7 +180,7 @@ if model_name == "LogisticRegression":
         #'n_jobs' : [-1],
         'solver': ['saga'],
         'penalty': ['l1', 'l2', None],
-        'C': [0.1, 1, 10, 100],
+        #'C': [0.1, 1, 10, 100],
     }
     task = 'classification'
     dl = False
@@ -492,6 +493,15 @@ if task == 'classification':
         y = np.array(y)
     elif target == '5_classes':
         y = epochs.metadata["task"].values
+    elif target == 'pain':
+        y_values = []
+        for index, row in epochs.metadata.iterrows():
+                if row['intensity'] >= 100 and (row['task'] == 'thermal' or row['task'] == 'thermalrate'):
+                    y_values.append("pain")
+                else:
+                    y_values.append("no pain")
+        y = np.array(y_values)
+        
 elif task == 'regression':
     target == 'intensity' #take this out later! Just for now, to avoid mix up
     if target == 'rating':
