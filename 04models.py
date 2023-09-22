@@ -18,7 +18,6 @@ from train_script_between_part import trainingDL_between, training_nested_cv_bet
 from train_script_within_part import training_nested_cv_within, trainingDL_within
 from bayes_train_script_between_part import bayes_training_nested_cv_between
 from bayes_train_script_within_part import bayes_training_nested_cv_within
-
 import torch.nn as nn
 import pandas as pd
 from sklearn.pipeline import make_pipeline
@@ -33,6 +32,8 @@ import json
 from sklearn.linear_model import ElasticNet
 import sys
 from braindecode.preprocessing import exponential_moving_standardize
+from imblearn.under_sampling import RandomUnderSampler
+from collections import Counter
 #from pyriemann.classification import MDM, TSclassifier
 #from pyriemann.estimation import Covariances, Shrinkage
 
@@ -499,12 +500,18 @@ if task == 'classification':
                 else:
                     y_values.append("no pain")
         y = np.array(y_values)
+        print('Original dataset shape %s' % Counter(y))
+        rus = RandomUnderSampler(random_state=42)
+        X, y = rus.fit_resample(X, y)
+        print('Resampled dataset shape %s' % Counter(y))
+
 
 elif task == 'regression':
     if target == 'rating':
         y = epochs.metadata["rating"].values 
     elif target == 'intensity':
         y = epochs.metadata["intensity"].values 
+
 
 # Check for same length
 print("groups:", len(groups))
