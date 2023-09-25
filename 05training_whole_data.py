@@ -503,7 +503,6 @@ if task == 'classification':
         y = np.array(y_values)
         
 elif task == 'regression':
-    target == 'intensity' #take this out later! Just for now, to avoid mix up
     if target == 'rating':
         y = epochs.metadata["rating"].values 
     elif target == 'intensity':

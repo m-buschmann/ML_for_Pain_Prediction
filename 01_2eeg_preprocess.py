@@ -38,8 +38,11 @@ part = sorted([s for s in os.listdir(bidsroot) if "sub-" in s])
 # Output folder
 derivpath = opj(bidsroot, "derivatives")
 
+#sub 13 and sub 14, sub test 005
 # Loop participants (sub-015 is very bad, excluded before any processing)
-#part = [p for p in part if p not in ["sub-015"]]
+#part = [p for p in part if p not in ["sub-002", "sub-003", "sub-004", "sub-005", "sub-006", "sub-007", "sub-008", "sub-009", "sub-010", "sub-012", "sub-013", "sub-014"]]
+part = [p for p in part if p in ["sub-014"]]
+
 
 # Create a data frame to collect stats
 stats_frame = pd.DataFrame(columns=["Participant", "Subtask", "n_bad_chans", "n_bads_ica"])
@@ -232,8 +235,17 @@ for p in part:
             open_browser=False,
             overwrite=True,
         )
-        #add row to statistics
+        # Add row to statistics
         stats_frame.loc[len(stats_frame)] = [p, task, n_bad_chans, n_bads_ica]
 
+        # Save statistics (append mode if the file already exists)
+        stats_file = opj(derivpath, "preprocess_stats.csv")
+        if os.path.isfile(stats_file):
+            # Append data without headers
+            stats_frame.to_csv(stats_file, mode='a', header=False, index=False)
+        else:
+            # Write data with headers for the first time
+            stats_frame.to_csv(stats_file, index=False)
+
     # Save statistics
-    stats_frame.to_csv(opj(derivpath, "preprocess_stats.csv"))
+    #stats_frame.to_csv(opj(derivpath, "preprocess_stats.csv"))
