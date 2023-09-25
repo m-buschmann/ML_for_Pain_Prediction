@@ -56,8 +56,9 @@ for p in part:
         os.makedirs(pdir)
 
     # Loop tasks
-    for task in ["thermalactive", "audioactive", "thermalpassive", "audiopassive", "resting"]:
-        # Initialize report
+    #for task in ["thermalactive", "audioactive", "thermalpassive", "audiopassive", "resting"]:
+    for task in ["resting"]:
+       # Initialize report
         report = Report(
             verbose=False, subject=p, title="EEG report for part " + p + " task " + task
         )
@@ -73,7 +74,7 @@ for p in part:
             raw = raw.drop_channels("Iz")
             print("Iz removed")
 
-        report.add_raw(raw=raw.copy().filter(l_freq=0.5, h_freq=100).set_eeg_reference("average"), title="Raw at start", psd=True) #? filter 1-100?
+        report.add_raw(raw=raw.copy().filter(l_freq=0.5, h_freq=100).set_eeg_reference("average"), title="Raw at start", psd=True) 
 
         # Set channel positions
         raw = raw.set_montage("easycap-M1")
