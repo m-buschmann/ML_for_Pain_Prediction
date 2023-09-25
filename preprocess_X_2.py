@@ -60,7 +60,7 @@ if cuda:
         device = torch.device('cpu')
 
     bidsroot = '/lustre04/scratch/mabus103/2023_eegmarkers/derivatives/epochs_clean/cleaned_epo.fif'
-    log_dir=f'/lustre04/scratch/mabus103/logs2'
+    log_dir=f'/lustre04/scratch/mabus103/2logs'
     #log_dir=f'/lustre04/scratch/mabus103/ML_for_Pain_Prediction/logs'
 elif 'media/mp' in current_directory: #MP's local machine
     model_name = "shallowFBCSPNetClassification"
@@ -119,11 +119,11 @@ for epo in tqdm(range(X.shape[0]), desc='Normalizing data'): # Loop epochs
     X[epo, :, :] = exponential_moving_standardize(X[epo, :, :], factor_new=0.001, init_block_size=None) # Normalize the data
 
 # Save the preprocessed data and additional information to a .npz file
-np.savez('normalized_X_2.npz', X=X)
+np.savez('2normalized_data/2normalized_X.npz', X=X)
 
 # Save the selected indices to a text file
-with open("selected_indices2.txt", "w") as f:
+with open("2normalized_data/2selected_indices.txt", "w") as f:
     for index in selected_indices:
         f.write(f"{index}\n")
 
-epochs.save(opj('normalized_epo2.fif'), overwrite=True)
+epochs.save(opj('2normalized_data/2normalized_epo.fif'), overwrite=True)
