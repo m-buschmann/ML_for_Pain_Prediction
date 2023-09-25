@@ -41,7 +41,7 @@ derivpath = opj(bidsroot, "derivatives")
 #sub 13 and sub 14, sub test 005
 # Loop participants (sub-015 is very bad, excluded before any processing)
 #part = [p for p in part if p not in ["sub-002", "sub-003", "sub-004", "sub-005", "sub-006", "sub-007", "sub-008", "sub-009", "sub-010", "sub-012", "sub-013", "sub-014"]]
-part = [p for p in part if p in ["sub-014"]]
+#part = [p for p in part if p in ["sub-014"]]
 
 
 # Create a data frame to collect stats
@@ -56,8 +56,8 @@ for p in part:
         os.makedirs(pdir)
 
     # Loop tasks
-    #for task in ["thermalactive", "audioactive", "thermalpassive", "audiopassive", "resting"]:
-    for task in ["resting"]:
+    for task in ["thermalactive", "audioactive", "thermalpassive", "audiopassive", "resting"]:
+    #for task in ["resting"]:
        # Initialize report
         report = Report(
             verbose=False, subject=p, title="EEG report for part " + p + " task " + task

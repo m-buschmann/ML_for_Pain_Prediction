@@ -112,7 +112,7 @@ if cc:
         metadata_df = epochs.metadata
 
         # Find the indices where the task is "thermal" or "thermalrate"
-        thermal_indices = np.where(metadata_df["task"].isin(["thermal", "thermalrate"]))[0]
+        thermal_indices = np.where(metadata_df["task"].isin(["thermalactive", "thermalpassive"]))[0]
 
         # Filter X based on the thermal indices
         X = X[thermal_indices]
@@ -140,7 +140,7 @@ else:
 
     if target == "intensity" or target == "rating":
         #only use thermal task for pain intensity
-        selected_tasks = ["thermal", "thermalrate"]
+        selected_tasks = ["thermalactive", "thermalpassive"]
         epochs = epochs[epochs.metadata["task"].isin(selected_tasks)]
         X = epochs.get_data()
     else:
@@ -489,14 +489,15 @@ print(model_name, part)
 if task == 'classification':
     epochs.metadata['task'].astype(str)
     if target == '3_classes':
-        y = [i.replace('rate', '') for i in epochs.metadata["task"].values]
+        y = [i.replace('active', '') for i in epochs.metadata["task"].values]
+        y = [i.replace('passive', '') for i in epochs.metadata["task"].values]
         y = np.array(y)
     elif target == '5_classes':
         y = epochs.metadata["task"].values
     elif target == 'pain':
         y_values = []
         for index, row in epochs.metadata.iterrows():
-                if row['intensity'] >= 100 and (row['task'] == 'thermal' or row['task'] == 'thermalrate'):
+                if row['intensity'] >= 100 and (row['task'] == 'thermalactive' or row['task'] == 'thermalpassive'):
                     y_values.append("pain")
                 else:
                     y_values.append("no pain")
@@ -504,7 +505,7 @@ if task == 'classification':
     elif target == 'pain_with_us':
         y_values = []
         for index, row in epochs.metadata.iterrows():
-                if row['intensity'] >= 100 and (row['task'] == 'thermal' or row['task'] == 'thermalrate'):
+                if row['intensity'] >= 100 and (row['task'] == 'thermalactive' or row['task'] == 'thermalpassive'):
                     y_values.append("pain")
                 else:
                     y_values.append("no pain")
@@ -655,13 +656,13 @@ if task == 'classification':
 
     # Add a legend with custom labels
     if dl == True and target == "5_classes":
-        target_names = ["auditory", "auditoryrate", "rest", "thermal", "thermalrate"]
+        target_names = ["audioactive", "audiopassive","thermalactive", "thermalpassive", "resting"] #["auditory", "auditoryrate", "rest", "thermal", "thermalrate"]
         legend_labels = {
-            0: 'auditory',
-            1: "auditoryrate",
+            0: 'audioactive', # TODO:Check to make sure that this order is correct
+            1: "audiopassive",
             2: 'rest',
-            3: 'thermal',
-            4: "thermalrate"
+            3: 'thermalactive',
+            4: "thermalpassive"
         }
 
         legend_elements = [plt.Line2D([0], [0], marker='o', color='w', label=f"{label}: {text}", markersize=10, markerfacecolor='b') for label, text in legend_labels.items()]
