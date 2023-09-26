@@ -38,6 +38,9 @@ part = sorted([s for s in os.listdir(bidsroot) if "sub-" in s])
 # Output folder
 derivpath = opj(bidsroot, "derivatives")
 
+# Create the directory if it doesn't exist
+os.makedirs(derivpath, exist_ok=True)
+
 #sub 13 and sub 14, sub test 005
 # Loop participants (sub-015 is very bad, excluded before any processing)
 #part = [p for p in part if p not in ["sub-002", "sub-003", "sub-004", "sub-005", "sub-006", "sub-007", "sub-008", "sub-009", "sub-010", "sub-012", "sub-013", "sub-014"]]

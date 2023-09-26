@@ -45,7 +45,6 @@ if cuda:
     model_name = sys.argv[1]
     bsize = 16  
     target = sys.argv[2]
-    task = sys.argv[3]
     if torch.cuda.is_available():
         device = torch.device('cuda')  # PyTorch will use the default GPU
         torch.backends.cudnn.benchmark = True
@@ -76,7 +75,6 @@ elif "mplab" in current_directory:
 else:
     model_name = "shallowFBCSPNetClassification" #set the model to use. also determines dl and kind of task
     target = "3_classes"
-    task = "classification"
     search_params = True
     bsize = 16
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
@@ -92,28 +90,34 @@ epochs = mne.read_epochs(data_path, preload=True)
 if model_name == "deep4netClassification":
     model = "deep4netClassification_3_classes.joblib"
     dl = True
+    task = "classification"
 elif model_name == "deep4netRegression":
     model = "deep4netRegression_intensity.joblib"
     dl = True
+    task = "regression"
 elif model_name == "shallowFBCSPNetClassification":
     #model = "shallowFBCSPNetClassification_3_classes.joblib"
     model = "shallowFBCSPNetClassification_3_classes.pth"
     dl = True
+    task = "classification"
 elif model_name == "shallowFBCSPNetRegression":
     model = "shallowFBCSPNetRegression_intensity.joblib"
     dl = True
+    task = "regression"
 elif model_name == "RFClassifier":
     model = "RFClassifier_3_classes.joblib"
     dl = False
+    task = "classification"
 elif model_name == "RFRegressor":
     #... model = ...
     dl = False
+    task = "regression"
 
 model_path = opj(model_dir, model)
 
 if cc:
     # load already normalized X
-    loaded_data = np.load('normalized_X.npz')  # For .npz format
+    loaded_data = np.load('/lustre04/scratch/mabus103/2normalized_data/2normalized_X.npz')  # For .npz format
     X = loaded_data['X']
 
     # Only use thermal for regression
@@ -122,7 +126,7 @@ if cc:
         metadata_df = epochs.metadata
 
         # Find the indices where the task is "thermal" or "thermalrate"
-        thermal_indices = np.where(metadata_df["task"].isin(["thermal", "thermalrate"]))[0]
+        thermal_indices = np.where(metadata_df["task"].isin(["thermalactive", "thermalpassive"]))[0]
 
         # Filter X based on the thermal indices
         X = X[thermal_indices]
@@ -154,7 +158,7 @@ else:
 
     if target == "intensity" or target == "rating":
         #only use thermal task for pain intensity
-        selected_tasks = ["thermal", "thermalrate"]
+        selected_tasks = ["thermalactive", "thermalpassive"]
         epochs = epochs[epochs.metadata["task"].isin(selected_tasks)]
         X = epochs.get_data()
     else:
@@ -169,17 +173,18 @@ groups = epochs.metadata["participant_id"].values
 print (model_name)
 
 # Set y
-if task == 'classification':
+if task == "classification":
     epochs.metadata['task'].astype(str)
     if target == '3_classes':
-        y = [i.replace('rate', '') for i in epochs.metadata["task"].values]
+        y = [i.replace('active', '') for i in epochs.metadata["task"].values]
+        y = [i.replace('passive', '') for i in epochs.metadata["task"].values]
         y = np.array(y)
     elif target == '5_classes':
         y = epochs.metadata["task"].values
     elif target == 'pain':
         y_values = []
         for index, row in epochs.metadata.iterrows():
-                if row['intensity'] >= 100 and (row['task'] == 'thermal' or row['task'] == 'thermalrate'):
+                if row['intensity'] >= 100 and (row['task'] == 'thermalactive' or row['task'] == 'thermalpassive'):
                     y_values.append("pain")
                 else:
                     y_values.append("no pain")
@@ -187,7 +192,7 @@ if task == 'classification':
     elif target == 'pain_with_us':
         y_values = []
         for index, row in epochs.metadata.iterrows():
-                if row['intensity'] >= 100 and (row['task'] == 'thermal' or row['task'] == 'thermalrate'):
+                if row['intensity'] >= 100 and (row['task'] == 'thermalactive' or row['task'] == 'thermalpassive'):
                     y_values.append("pain")
                 else:
                     y_values.append("no pain")
@@ -215,8 +220,6 @@ elif task == 'regression':
 print("groups:", len(groups))
 print("X:",len(X))
 print("y:",len(y))
-
-#model = torch.load(model_path, map_location=torch.device('cpu'))
 
 if dl:
 
@@ -246,10 +249,7 @@ else:
         pass
     else:
         vectorizer = mne.decoding.Vectorizer()
-        X = vectorizer.fit_transform(X)
-
-X= X[0:100] #just for testing code on my laptop from 0 to 100
-y = y[0:100]    
+        X = vectorizer.fit_transform(X)   
 
 # Make predictions on the test data
 y_pred = model.predict(X)

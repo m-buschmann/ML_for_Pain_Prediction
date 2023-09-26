@@ -624,9 +624,9 @@ if dl:
     # Write the DataFrame to a CSV file
     data.to_csv(output_file, index=False)
 
-    ## Save the model to the specified path
+    ## Save the model to a torch file
     torch.save(model, f'{model_dir}{model_name}_{target}.pth')
-    # Save the final model to a file
+    # Save the final model to a joblib file (save both ways in case one works better later)
     joblib.dump(model, f'{model_dir}{model_name}_{target}.joblib')
     # Save the training history to a separate file
     history_filename = f'{model_dir}{model_name}_{target}_history.joblib'

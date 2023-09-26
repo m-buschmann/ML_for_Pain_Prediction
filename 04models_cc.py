@@ -103,7 +103,7 @@ epochs = mne.read_epochs(data_path, preload=True)
 # If on compute canada:
 if cc:
     # load already normalized X
-    loaded_data = np.load('normalized_X.npz')  # For .npz format
+    loaded_data = np.load('/lustre04/scratch/mabus103/normalized_data/normalized_X.npz')  # For .npz format
     X = loaded_data['X']
 
     # Only use thermal for regression

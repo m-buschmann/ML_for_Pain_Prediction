@@ -130,4 +130,4 @@ with open("normalized_data/selected_indices.txt", "w") as f:
     for index in selected_indices:
         f.write(f"{index}\n")
 
-epochs.save(opj('normalized_epo.fif'), overwrite=True)
+epochs.save(opj('normalized_data/normalized_epo.fif'), overwrite=True)
