@@ -78,10 +78,9 @@ else:
     target = "3_classes"
     task = "classification"
     search_params = True
-    dl = False
     bsize = 16
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
-    bidsroot = '/home/mathilda/MITACS/Project/2023_eegmarkers/derivatives/epochs_clean/sub-002_cleaned_epo.fif'
+    bidsroot = '/home/mathilda/MITACS/Project/2023_eegmarkers/derivatives/epochs_clean/cleaned_epo_sub2_to_4.fif'
     log_dir='/home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/2logs'
     model_dir='/home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/trained_models'
 
@@ -89,26 +88,28 @@ data_path = opj(bidsroot)
 # Load epochs oject, is already normalized and some epochs removed on compute canada
 epochs = mne.read_epochs(data_path, preload=True)
 
-# Define the groups (participants) to avoid splitting them across train and test
-groups = epochs.metadata["participant_id"].values
 
 if model_name == "deep4netClassification":
     model = "deep4netClassification_3_classes.joblib"
+    dl = True
 elif model_name == "deep4netRegression":
     model = "deep4netRegression_intensity.joblib"
+    dl = True
 elif model_name == "shallowFBCSPNetClassification":
     #model = "shallowFBCSPNetClassification_3_classes.joblib"
     model = "shallowFBCSPNetClassification_3_classes.pth"
+    dl = True
 elif model_name == "shallowFBCSPNetRegression":
     model = "shallowFBCSPNetRegression_intensity.joblib"
+    dl = True
 elif model_name == "RFClassifier":
     model = "RFClassifier_3_classes.joblib"
-#elif model_name == "RFRegressor":
+    dl = False
+elif model_name == "RFRegressor":
+    #... model = ...
+    dl = False
 
 model_path = opj(model_dir, model)
-
-# Load the saved model
-model = torch.load(model_path, map_location=torch.device('cpu'))
 
 if cc:
     # load already normalized X
@@ -163,6 +164,8 @@ else:
     for epo in tqdm(range(X.shape[0]), desc='Normalizing data'): # Loop epochs
         X[epo, :, :] = exponential_moving_standardize(X[epo, :, :], factor_new=0.001, init_block_size=None) # Normalize the data
 
+# Define the groups (participants) to avoid splitting them across train and test
+groups = epochs.metadata["participant_id"].values
 print (model_name)
 
 # Set y
@@ -213,7 +216,16 @@ print("groups:", len(groups))
 print("X:",len(X))
 print("y:",len(y))
 
+#model = torch.load(model_path, map_location=torch.device('cpu'))
+
 if dl:
+
+    if cc:
+        model = torch.load(model_path, map_location=torch.device('cuda'))
+    else:
+        # Load the saved model
+        model = torch.load(model_path, map_location=torch.device('cpu'))
+
     # Convert categorical labels to integer indices
     if task == "classification":
         label_encoder = LabelEncoder()

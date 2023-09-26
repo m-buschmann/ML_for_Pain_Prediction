@@ -401,7 +401,7 @@ elif model_name == "shallowFBCSPNetClassification":
         optimizer__lr = 0.00001,
         optimizer__weight_decay = 0, # As recommended on braindecode.org
         batch_size = bsize,
-        max_epochs=2, #!50
+        max_epochs=50, 
         iterator_valid__shuffle=False, #True?
         iterator_train__shuffle=True,
         device=device,
@@ -578,7 +578,7 @@ if dl:
     unique_participants = np.unique(groups)
 
     # How much of the data to use for validation
-    test_group_count = int(0.5 * len(unique_participants)) #!0.2
+    test_group_count = int(0.2 * len(unique_participants)) 
     test_group = np.random.choice(unique_participants, test_group_count, replace=False)
 
     # Create masks for selecting data points belonging to the test and training groups

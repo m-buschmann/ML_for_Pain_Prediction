@@ -321,14 +321,14 @@ all_epochs.resample(250)
 # Save the final all_epochs object
 all_epochs.save(opj(bidsroot, 'cleaned_epo.fif'), overwrite=True)
 
-"""
-# Concatenate the two big epoch objects 
+
+"""# Concatenate  epoch objects 
 all_epochs = None
-bidsroot ='/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs'
+bidsroot ='/home/mathilda/MITACS/Project/2023_eegmarkers/derivatives/epochs_clean'
 part = sorted([s for s in os.listdir(bidsroot) if "sub" in s])
 derivpath = opj(bidsroot)
 
-part = [p for p in part if p in ["first_29_sub_cleaned_epo.fif", "second_sub_cleaned_epo.fif"]]
+part = [p for p in part if p in ["sub-002_cleaned_epo.fif", "sub-003_cleaned_epo.fif", "sub-004_cleaned_epo"]]
 
 # Create a generator function to yield the EpochsArray objects
 def epochs_generator(participants, bidsroot):
