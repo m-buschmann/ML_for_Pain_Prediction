@@ -2,6 +2,7 @@ data/*
 __pycache__/*
 trained_models/
 logs/
+2logs/
 best_deep4netClassification/
 best_deep4netRegression/
 images/
