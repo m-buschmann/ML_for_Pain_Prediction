@@ -75,7 +75,7 @@ elif "mplab" in current_directory:
 else:
     model_name = "shallowFBCSPNetClassification" #set the model to use. also determines dl and kind of task
     target = "3_classes"
-    search_params = True
+    search_params = False
     bsize = 16
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
     bidsroot = '/home/mathilda/MITACS/Project/2023_eegmarkers/derivatives/epochs_clean/cleaned_epo_sub2_to_4.fif'
@@ -172,12 +172,12 @@ else:
 groups = epochs.metadata["participant_id"].values
 print (model_name)
 
+    
 # Set y
 if task == "classification":
     epochs.metadata['task'].astype(str)
     if target == '3_classes':
-        y = [i.replace('active', '') for i in epochs.metadata["task"].values]
-        y = [i.replace('passive', '') for i in epochs.metadata["task"].values]
+        y = [i.replace('active', '').replace('passive', '') for i in epochs.metadata["task"].values]
         y = np.array(y)
     elif target == '5_classes':
         y = epochs.metadata["task"].values
