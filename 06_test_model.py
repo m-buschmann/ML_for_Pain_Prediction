@@ -256,12 +256,26 @@ y_pred = model.predict(X)
 
 # Calculate score
 if task == "classification":
-    accuracy = accuracy_score(y, y_pred)
+    score = accuracy_score(y, y_pred)
 
-    print(f"Model Accuracy on Test Data: {accuracy:.2f}")
+    print(f"Model Accuracy on Test Data: {score:.2f}")
 else:
     rmse = np.sqrt(mean_squared_error(y, y_pred))
     print(f"RMSE on Test Data: {rmse:.2f}")
-    r2 = r2_score(y, y_pred)
-    print(f"r2 on Test Data: {r2:.2f}")
+    score = r2_score(y, y_pred)
+    print(f"r2 on Test Data: {score:.2f}")
 
+data_length = len(y)
+
+# Create a DataFrame
+data = pd.DataFrame({
+    "True Label": y,
+    "Predicted Label": y_pred,
+    "Test Scores (r2 or accuracy)": [score] + ["_"] * (data_length - 1),
+})
+
+output_dir = f"testing_on_new_data_results"
+os.makedirs(output_dir, exist_ok=True)  # Create the directory if it doesn't exist
+output_file = os.path.join(output_dir, f"{model_name}_{target}_resluts_test.csv")
+# Write the DataFrame to a CSV file
+data.to_csv(output_file, index=False)
