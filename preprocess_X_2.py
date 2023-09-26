@@ -112,6 +112,10 @@ epochs = epochs[selected_indices]
 print("Number of epochs before removal:", len(metadata_df))
 print("Number of epochs after removal:", len(epochs))
 
+epochs = epochs.pick_types(eeg=True)
+num_channels = len(epochs.info['ch_names'])
+print(f"Number of channels in the Epochs object: {num_channels}")
+
 X = epochs.get_data()
 X = X*1e6 # Convert from V to uV
 

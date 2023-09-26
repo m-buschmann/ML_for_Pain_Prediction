@@ -28,7 +28,8 @@ from sklearn.metrics import accuracy_score, mean_squared_error
 from sklearn.preprocessing import LabelEncoder
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import r2_score
-
+from imblearn.under_sampling import RandomUnderSampler
+from collections import Counter
 
 
 # Get the current working directory
@@ -44,6 +45,7 @@ if cuda:
     model_name = sys.argv[1]
     bsize = 16  
     target = sys.argv[2]
+    task = sys.argv[3]
     if torch.cuda.is_available():
         device = torch.device('cuda')  # PyTorch will use the default GPU
         torch.backends.cudnn.benchmark = True
@@ -51,9 +53,9 @@ if cuda:
         cuda = False
         device = torch.device('cpu')
 
-    bidsroot = '/lustre04/scratch/mabus103/normalized_data/normalized_epo.fif'
-    log_dir=f'/lustre04/scratch/mabus103/logs'
-    model_dir=f'/lustre04/scratch/mabus103/models'
+    bidsroot = '/lustre04/scratch/mabus103/2normalized_data/2normalized_epo.fif'
+    log_dir=f'/lustre04/scratch/mabus103/2logs'
+    model_dir=f'/lustre04/scratch/mabus103/trained_models'
 elif 'media/mp' in current_directory: #MP's local machine
     model_name = "shallowFBCSPNetClassification"
     target = "3_classes"
@@ -72,24 +74,40 @@ elif "mplab" in current_directory:
     log_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/logs'
     model_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/models'
 else:
-    model_name = "shallowFBCSPNetClassification" #set the model to use. also determines dl and kind of task
-    target = "intensity"
-    task = "regression"
+    model_name = "RFClassifier" #set the model to use. also determines dl and kind of task
+    target = "3_classes"
+    task = "classification"
     search_params = True
     dl = False
     bsize = 16
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
-    bidsroot = '/home/mathilda/MITACS/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
-    log_dir='/home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/logs'
-    model_dir='/home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/models'
+    bidsroot = '/home/mathilda/MITACS/Project/2023_eegmarkers/derivatives/epochs_clean/sub-002_cleaned_epo.fif'
+    log_dir='/home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/2logs'
+    model_dir='/home/mathilda/MITACS/Project/code/ML_for_Pain_Prediction/trained_models'
 
 data_path = opj(bidsroot)
-
-# Load epochs oject
+# Load epochs oject, is already normalized and some epochs removed on compute canada
 epochs = mne.read_epochs(data_path, preload=True)
 
+# Define the groups (participants) to avoid splitting them across train and test
+groups = epochs.metadata["participant_id"].values
+
+if model_name == "deep4netClassification":
+    model = "deep4netClassification_3_classes.joblib"
+elif model_name == "deep4netRegression":
+    model = "deep4netRegression_intensity.joblib"
+elif model_name == "shallowFBCSPNetClassification":
+    model = "shallowFBCSPNetClassification_3_classes.joblib"
+elif model_name == "shallowFBCSPNetRegression":
+    model = "shallowFBCSPNetRegression_intensity.joblib"
+elif model_name == "RFClassifier":
+    model = "RFClassifier_3_classes.joblib"
+#elif model_name == "RFRegressor":
+
+model_path = opj(model_dir, model)
+
 # Load the saved model
-model = joblib.load(model_dir)
+model = joblib.load(model_path)
 
 if cc:
     # load already normalized X
@@ -140,23 +158,55 @@ else:
     for epo in tqdm(range(X.shape[0]), desc='Normalizing data'): # Loop epochs
         X[epo, :, :] = exponential_moving_standardize(X[epo, :, :], factor_new=0.001, init_block_size=None) # Normalize the data
 
+print (model_name)
 
 # Set y
 if task == 'classification':
-    target == '3_classes' #take this out later! Just for now, to avoid mix up
     epochs.metadata['task'].astype(str)
     if target == '3_classes':
         y = [i.replace('rate', '') for i in epochs.metadata["task"].values]
         y = np.array(y)
     elif target == '5_classes':
         y = epochs.metadata["task"].values
+    elif target == 'pain':
+        y_values = []
+        for index, row in epochs.metadata.iterrows():
+                if row['intensity'] >= 100 and (row['task'] == 'thermal' or row['task'] == 'thermalrate'):
+                    y_values.append("pain")
+                else:
+                    y_values.append("no pain")
+        y = np.array(y_values)
+    elif target == 'pain_with_us':
+        y_values = []
+        for index, row in epochs.metadata.iterrows():
+                if row['intensity'] >= 100 and (row['task'] == 'thermal' or row['task'] == 'thermalrate'):
+                    y_values.append("pain")
+                else:
+                    y_values.append("no pain")
+        y = np.array(y_values)
+        # Only use as much 'no pain' data as 'pain' data
+        print('Original dataset shape %s' % Counter(y))
+        X_flat = X.reshape(X.shape[0], -1)
+        rus = RandomUnderSampler(random_state=42)
+        X_resampled, y = rus.fit_resample(X_flat, y)
+        n = len(y)
+        X = X_resampled.reshape(n, X.shape[1], X.shape[2])
+        print('Resampled dataset shape %s' % Counter(y))
+        # Get indices that are kept in the data
+        selected_indices = rus.sample_indices_
+        # Use these indices to filter the 'groups' array
+        groups = groups[selected_indices]
+
 elif task == 'regression':
-    target == 'intensity' #take this out later! Just for now, to avoid mix up
     if target == 'rating':
         y = epochs.metadata["rating"].values 
     elif target == 'intensity':
         y = epochs.metadata["intensity"].values 
 
+# Check for same length
+print("groups:", len(groups))
+print("X:",len(X))
+print("y:",len(y))
 
 if dl:
     # Convert categorical labels to integer indices
@@ -196,4 +246,5 @@ else:
     rmse = np.sqrt(mean_squared_error(y_test, y_pred))
     print(f"RMSE on Test Data: {rmse:.2f}")
     r2 = r2_score(y_test, y_pred)
+    print(f"r2 on Test Data: {r2:.2f}")
 

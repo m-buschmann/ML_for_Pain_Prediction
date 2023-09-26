@@ -28,7 +28,7 @@ part = sorted([s for s in os.listdir(bidsroot) if "sub-" in s])
 derivpath = opj(bidsroot)
 
 # Create a data frame path to collect stats
-excluded_csv_path = opj(bidsroot, 'cleaned epochs', 'excluded_epochs_autoreject.csv')
+excluded_csv_path = opj(bidsroot, 'cleaned_epo', 'excluded_epochs_autoreject.csv')
 
 # Create a data frame to collect stats if not already created
 if not os.path.exists(excluded_csv_path):
@@ -322,7 +322,7 @@ all_epochs.resample(250)
 all_epochs.save(opj(bidsroot, 'cleaned_epo.fif'), overwrite=True)
 
 """
-# Concatenate the two big epoch objects -> doesnt work, memory?
+# Concatenate the two big epoch objects 
 all_epochs = None
 bidsroot ='/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs'
 part = sorted([s for s in os.listdir(bidsroot) if "sub" in s])

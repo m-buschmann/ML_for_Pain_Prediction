@@ -170,7 +170,7 @@ for p in part:
         ).load_data()
         # Remove very bad epochs for ICA
         epochs.drop_bad(reject=dict(eeg=400e-6))
-
+    
         # ICA
         ica = ICA(
             n_components=None,
