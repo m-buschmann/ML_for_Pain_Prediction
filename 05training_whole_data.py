@@ -90,9 +90,9 @@ elif "mplab" in current_directory:
     log_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/logs'
     model_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/trained_models/'
 else:
-    model_name = "LogisticRegression" #"LogisticRegression" #set the model to use. also determines dl and kind of task
+    model_name = "shallowFBCSPNetClassification" #"LogisticRegression" #set the model to use. also determines dl and kind of task
     target = "3_classes"
-    search_params = True
+    search_params = False
     bsize = 16
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
     bidsroot = '/home/mathilda/MITACS/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
@@ -399,7 +399,7 @@ elif model_name == "shallowFBCSPNetClassification":
         optimizer__lr = 0.00001,
         optimizer__weight_decay = 0, # As recommended on braindecode.org
         batch_size = bsize,
-        max_epochs=50,
+        max_epochs=2, #!50
         iterator_valid__shuffle=False, #True?
         iterator_train__shuffle=True,
         device=device,
@@ -553,7 +553,7 @@ if dl:
     unique_participants = np.unique(groups)
 
     # How much of the data to use for validation
-    test_group_count = int(0.2 * len(unique_participants)) 
+    test_group_count = int(0.5 * len(unique_participants)) #!0.2
     test_group = np.random.choice(unique_participants, test_group_count, replace=False)
 
     # Create masks for selecting data points belonging to the test and training groups
@@ -599,6 +599,8 @@ if dl:
     # Write the DataFrame to a CSV file
     data.to_csv(output_file, index=False)
 
+    ## Save the model to the specified path
+    torch.save(model, f'{model_dir}{model_name}_{target}.pth')
     # Save the final model to a file
     joblib.dump(model, f'{model_dir}{model_name}_{target}.joblib')
     # Save the training history to a separate file

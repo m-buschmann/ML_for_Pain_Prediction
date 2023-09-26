@@ -74,7 +74,7 @@ elif "mplab" in current_directory:
     log_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/logs'
     model_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/models'
 else:
-    model_name = "RFClassifier" #set the model to use. also determines dl and kind of task
+    model_name = "shallowFBCSPNetClassification" #set the model to use. also determines dl and kind of task
     target = "3_classes"
     task = "classification"
     search_params = True
@@ -97,7 +97,8 @@ if model_name == "deep4netClassification":
 elif model_name == "deep4netRegression":
     model = "deep4netRegression_intensity.joblib"
 elif model_name == "shallowFBCSPNetClassification":
-    model = "shallowFBCSPNetClassification_3_classes.joblib"
+    #model = "shallowFBCSPNetClassification_3_classes.joblib"
+    model = "shallowFBCSPNetClassification_3_classes.pth"
 elif model_name == "shallowFBCSPNetRegression":
     model = "shallowFBCSPNetRegression_intensity.joblib"
 elif model_name == "RFClassifier":
@@ -107,7 +108,7 @@ elif model_name == "RFClassifier":
 model_path = opj(model_dir, model)
 
 # Load the saved model
-model = joblib.load(model_path)
+model = torch.load(model_path, map_location=torch.device('cpu'))
 
 if cc:
     # load already normalized X
@@ -235,20 +236,20 @@ else:
         vectorizer = mne.decoding.Vectorizer()
         X = vectorizer.fit_transform(X)
 
-X_test= X[0:100] #just for testing code on my laptop from 0 to 100
-y_test = y[0:100]    
+X= X[0:100] #just for testing code on my laptop from 0 to 100
+y = y[0:100]    
 
 # Make predictions on the test data
-y_pred = model.predict(X_test)
+y_pred = model.predict(X)
 
 # Calculate score
 if task == "classification":
-    accuracy = accuracy_score(y_test, y_pred)
+    accuracy = accuracy_score(y, y_pred)
 
     print(f"Model Accuracy on Test Data: {accuracy:.2f}")
 else:
-    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+    rmse = np.sqrt(mean_squared_error(y, y_pred))
     print(f"RMSE on Test Data: {rmse:.2f}")
-    r2 = r2_score(y_test, y_pred)
+    r2 = r2_score(y, y_pred)
     print(f"r2 on Test Data: {r2:.2f}")
 
