@@ -123,10 +123,10 @@ for epo in tqdm(range(X.shape[0]), desc='Normalizing data'): # Loop epochs
     X[epo, :, :] = exponential_moving_standardize(X[epo, :, :], factor_new=0.001, init_block_size=None) # Normalize the data
 
 # Save the preprocessed data and additional information to a .npz file
-np.savez('normalized_X.npz', X=X)
+np.savez('normalized_data/normalized_X.npz', X=X)
 
 # Save the selected indices to a text file
-with open("selected_indices.txt", "w") as f:
+with open("normalized_data/selected_indices.txt", "w") as f:
     for index in selected_indices:
         f.write(f"{index}\n")
 
