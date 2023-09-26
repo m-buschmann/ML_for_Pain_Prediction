@@ -286,13 +286,15 @@ for p in part:
 # Concatenate the cleaned epochs of all participants
 all_epochs = None
 if "lustre" in current_directory:
-    bidsroot = '/lustre04/scratch/mabus103/2023_eegmarkers/derivatives/2epochs_clean'
+    bidsroot = '/lustre04/scratch/mabus103/2023_eegmarkers/derivatives/epochs_clean'
 else:
-    bidsroot = '/home/mathilda/MITACS/Project/2023_eegmarkers/derivatives/2epochs_clean'
+    bidsroot = '/home/mathilda/MITACS/Project/2023_eegmarkers/derivatives/epochs_clean'
 
 #bidsroot ='/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/epochs_clean_3'
 part = sorted([s for s in os.listdir(bidsroot) if "sub-" in s])
-derivpath = opj(bidsroot)
+bidsroot = opj(bidsroot)
+if not os.path.exists(os.path.dirname(bidsroot)):
+    os.makedirs(os.path.dirname(bidsroot))
 
 # Create a generator function to yield the EpochsArray objects
 def epochs_generator(participants, bidsroot):
