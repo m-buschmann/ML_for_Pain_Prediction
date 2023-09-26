@@ -74,6 +74,7 @@
     part = sys.argv[2] ('within' or 'between')\
     target = sys.argv[3] (3_classes, 5_classes, intensity, or rating)
     - else: set your own bidsroot,  log_dir, model_dir (where to load models from) and the arguments
+    - IMPORTANT: folder "trained_models" needs to be on local device or CC, files are to big to store them on github
 
         
 ## example .sh file:   
