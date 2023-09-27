@@ -12,7 +12,6 @@
 - bayes_train_script_between_part.py: contains training for DL and standard ML between participants with bayes nested CV
 - bayes_train_script_within_part.py: contains training for DL and standard ML within participants with bayes nested CV
 - 04bayes_models_cc.py: Run the training with bayes grid search, needed it right now as its own file, but can be integrated into the other models script as an optiomn later
-- 04models.py basically the same as "04models_cc.py", used it to experiment in order to not mess anything up in the code I run in Compute Canada. Can be deleted.
 - 04models_cc.py: The code to run on Compute Canada to train models. Should always contain the current state of the code. To run it on Compute Canada, it expects the following arguments:\
     model_name = sys.argv[1]\
     part = sys.argv[2]\
@@ -23,7 +22,7 @@
     part = sys.argv[2]\
     target = sys.argv[3]\
     search_params = sys.argv[4] (True or False, whether to do Gridsearch to find Hyperparameters. If False, best Parameters need to inserted in the code)
-- 06_test_model.py: Test the model on new data. Still needs to be changed to use Aly's data (as of 14.09.2023)
+- 06_test_model.py: Test the model on new data.
 - tensorboard.py: show the tensorboard logs
 - preprocess_X.py: Remove epochs with too high difference in intensity and standardize X. This data is only used on Compute Canada. On other computers, this will be done when running 04models_cc.py
 
@@ -40,8 +39,8 @@
 
 ## How to use
 ### Preprocess data
-- 01eeg_preprocess.py: exchange bidsroot for the path to your eeg data
-- 02cleaning_epochs.py: exchange bidsroot for the path to your eeg data
+- 01_xeeg_preprocess.py: exchange bidsroot for the path to your eeg data
+- 02_xcleaning_epochs.py: exchange bidsroot for the path to your eeg data
 - preprocess_X.py: exchange bidsroot and log_dir for the path to your eeg data
 
 ### Run the training
@@ -52,8 +51,7 @@
     target = sys.argv[3] (3_classes, 5_classes, intensity, or rating)\
     (see example below)
     - else: set your own bidsroot and log_dir and the arguments
-    - right now, the code sets target = 'intensity' or '3_classes' later in the code to prevent mix-ups
-
+      
 ### Train models on whole dataset
 - 05training_whole_data.py
     - if running on Compute Canada: easiest to use a .sh file with the arguments\
@@ -121,12 +119,13 @@ python /lustre04/scratch/mabus103/ML_for_Pain_Prediction/04models_cc.py "deep4ne
 #"shallowFBCSPNetClassification"
 #"shallowFBCSPNetRegression"
 
-
 #targets
 #'3_classes'
 #'5_classes'
 #'rating'
 #'intensity'
+#'pain'
+#'pain_with_us'
 
 
     
