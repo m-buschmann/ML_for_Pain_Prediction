@@ -91,8 +91,8 @@ elif "mplab" in current_directory:
     log_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/logs'
     model_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/trained_models/'
 else:
-    model_name = "shallowFBCSPNetClassification" #"LogisticRegression" #set the model to use. also determines dl and kind of task
-    target = "3_classes"
+    model_name = "deep4netRegression" #"LogisticRegression" #set the model to use. also determines dl and kind of task
+    target = "intensity"
     search_params = False
     bsize = 16
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False

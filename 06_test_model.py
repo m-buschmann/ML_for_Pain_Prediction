@@ -73,8 +73,8 @@ elif "mplab" in current_directory:
     log_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/logs'
     model_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/models'
 else:
-    model_name = "shallowFBCSPNetClassification" #set the model to use. also determines dl and kind of task
-    target = "3_classes"
+    model_name = "deep4netRegression" #set the model to use. also determines dl and kind of task
+    target = "intensity"
     search_params = False
     bsize = 16
     device = torch.device('cpu')  # Use CPU if GPU is not available or cuda is False
@@ -265,7 +265,10 @@ else:
     score = r2_score(y, y_pred)
     print(f"r2 on Test Data: {score:.2f}")
 
+# Length of data for dataframe
 data_length = len(y)
+if task == "regression":
+    y_pred = np.squeeze(y_pred)
 
 # Create a DataFrame
 data = pd.DataFrame({
