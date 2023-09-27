@@ -43,8 +43,7 @@ os.makedirs(derivpath, exist_ok=True)
 
 # Loop participants (exclud bad participants before any processing)
 #part = [p for p in part if p not in ["sub-002", "sub-003", "sub-004", "sub-005", "sub-006", "sub-007", "sub-008", "sub-009", "sub-010", "sub-012", "sub-013", "sub-014"]]
-part = [p for p in part if p in ["sub-013"]]
-
+#part = [p for p in part if p in ["sub-013"]]
 
 # Create a data frame to collect stats
 stats_frame = pd.DataFrame(columns=["Participant", "Subtask", "n_bad_chans", "n_bads_ica"])
@@ -58,8 +57,7 @@ for p in part:
         os.makedirs(pdir)
 
     # Loop tasks
-    #for task in ["thermalactive", "audioactive", "thermalpassive", "audiopassive", "resting"]:
-    for task in ["resting"]:
+    for task in ["thermalactive", "audioactive", "thermalpassive", "audiopassive", "resting"]:
        # Initialize report
         report = Report(
             verbose=False, subject=p, title="EEG report for part " + p + " task " + task
