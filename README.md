@@ -119,12 +119,13 @@ python /lustre04/scratch/mabus103/ML_for_Pain_Prediction/04models_cc.py "deep4ne
 #"shallowFBCSPNetClassification"
 #"shallowFBCSPNetRegression"
 
-
 #targets
 #'3_classes'
 #'5_classes'
 #'rating'
 #'intensity'
+#'pain'
+#'pain_with_us'
 
 
     
