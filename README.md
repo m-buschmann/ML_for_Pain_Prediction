@@ -12,7 +12,6 @@
 - bayes_train_script_between_part.py: contains training for DL and standard ML between participants with bayes nested CV
 - bayes_train_script_within_part.py: contains training for DL and standard ML within participants with bayes nested CV
 - 04bayes_models_cc.py: Run the training with bayes grid search, needed it right now as its own file, but can be integrated into the other models script as an optiomn later
-- 04models.py basically the same as "04models_cc.py", used it to experiment in order to not mess anything up in the code I run in Compute Canada. Can be deleted.
 - 04models_cc.py: The code to run on Compute Canada to train models. Should always contain the current state of the code. To run it on Compute Canada, it expects the following arguments:\
     model_name = sys.argv[1]\
     part = sys.argv[2]\
