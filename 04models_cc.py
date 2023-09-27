@@ -86,7 +86,7 @@ elif "mplab" in current_directory:
     bidsroot = '/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/cleaned epochs/single_sub_cleaned_epochs/sub_3_to_5_cleaned_epo.fif'
     log_dir='/home/mplab/Desktop/Mathilda/Project/code/ML_for_Pain_Prediction/logs'
 else:
-    model_name = "deep4netClassification" #set the model to use. also determines dl and kind of task
+    model_name = "shallowFBCSPNetClassification" #set the model to use. also determines dl and kind of task
     part = 'within'# 'between' or 'within' participant
     target = "pain" #intensity, rating, 3_classes, 5_classes, pain, pain_with_us
     optimizer_lr = 0.000625

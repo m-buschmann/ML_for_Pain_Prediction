@@ -88,11 +88,11 @@ epochs = mne.read_epochs(data_path, preload=True)
 
 
 if model_name == "deep4netClassification":
-    model = "deep4netClassification_3_classes.joblib"
+    model = "deep4netClassification_3_classes.pth"
     dl = True
     task = "classification"
 elif model_name == "deep4netRegression":
-    model = "deep4netRegression_intensity.joblib"
+    model = "deep4netRegression_intensity.pth"
     dl = True
     task = "regression"
 elif model_name == "shallowFBCSPNetClassification":
@@ -101,7 +101,7 @@ elif model_name == "shallowFBCSPNetClassification":
     dl = True
     task = "classification"
 elif model_name == "shallowFBCSPNetRegression":
-    model = "shallowFBCSPNetRegression_intensity.joblib"
+    model = "shallowFBCSPNetRegression_intensity.pth"
     dl = True
     task = "regression"
 elif model_name == "RFClassifier":
@@ -223,7 +223,7 @@ print("y:",len(y))
 
 if dl:
 
-    if cc:
+    if cuda:
         model = torch.load(model_path, map_location=torch.device('cuda'))
     else:
         # Load the saved model
