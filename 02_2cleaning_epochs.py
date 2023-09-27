@@ -41,7 +41,8 @@ else:
 
 
 # Loop participants (3 sub are very bad, excluded)
-#part = [p for p in part if p not in ["sub-015", "sub-018", "sub-029"]]
+#part = [p for p in part if p not in ["sub-002", "sub-003", "sub-004", "sub-005", "sub-006", "sub-007", "sub-008", "sub-009", "sub-010", "sub-012"]]
+part = [p for p in part if p in ["sub-013", "sub-014"]]
 
 
 # Loop participants
@@ -137,7 +138,6 @@ else:
     bidsroot = '/home/mathilda/MITACS/Project/2023_eegmarkers/derivatives/epochs_clean'
 
 #bidsroot ='/home/mplab/Desktop/Mathilda/Project/eeg_pain_v2/derivatives/epochs_clean_3'
-part = sorted([s for s in os.listdir(bidsroot) if "sub-" in s])
 # Create the directory if it doesn't exist
 os.makedirs(bidsroot, exist_ok=True)
 bidsroot = opj(bidsroot)

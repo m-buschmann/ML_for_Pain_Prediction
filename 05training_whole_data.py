@@ -36,7 +36,6 @@ from sklearn.model_selection import train_test_split, GroupKFold, KFold, GridSea
 from sklearn.metrics import accuracy_score, r2_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import LabelEncoder
-from sklearn.model_selection import train_test_split
 from imblearn.under_sampling import RandomUnderSampler
 from collections import Counter
 

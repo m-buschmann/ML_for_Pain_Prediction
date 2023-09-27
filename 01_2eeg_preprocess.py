@@ -43,6 +43,7 @@ os.makedirs(derivpath, exist_ok=True)
 
 # Loop participants (exclud bad participants before any processing)
 #part = [p for p in part if p not in ["sub-002", "sub-003", "sub-004", "sub-005", "sub-006", "sub-007", "sub-008", "sub-009", "sub-010", "sub-012", "sub-013", "sub-014"]]
+part = [p for p in part if p in ["sub-013"]]
 
 
 # Create a data frame to collect stats
@@ -57,7 +58,8 @@ for p in part:
         os.makedirs(pdir)
 
     # Loop tasks
-    for task in ["thermalactive", "audioactive", "thermalpassive", "audiopassive", "resting"]:
+    #for task in ["thermalactive", "audioactive", "thermalpassive", "audiopassive", "resting"]:
+    for task in ["resting"]:
        # Initialize report
         report = Report(
             verbose=False, subject=p, title="EEG report for part " + p + " task " + task
@@ -79,6 +81,11 @@ for p in part:
         # Set channel positions
         raw = raw.set_montage("easycap-M1")
 
+        if p == "sub-013" and task == "resting":
+            raw.info['bads'] = ['TP9']
+            raw.interpolate_bads(reset_bads=True)
+            print(raw.info['nchan'])
+
         # Add manually flagged bad channels
         chan = pd.read_csv(
             opj(bidsroot, p, "eeg", p + "_task-" + task + "_channels.tsv"), sep="\t"
@@ -90,11 +97,6 @@ for p in part:
         # Identify additional bad channels using ransac
 
         # Epochs for ransac (filtered, 2s epochs with average reference and very bad epochs removed)
-        if p == "sub-013" and task == "resting":
-            #raw.info["bads"] = "TP9"
-            raw = raw.drop_channels("TP9")
-            print("TP9 removed")
-
         epochs = (
             mne.make_fixed_length_epochs(raw.copy().filter(1, 60), duration=2)
             .load_data()
