@@ -49,239 +49,82 @@ for p in part:
     print(p)
     all_epochs = None
 
-    if p == "sub-013":
-        # Loop tasks
-        for task in ["thermalactive", "audioactive", "thermalpassive", "audiopassive"]:
+    # Loop tasks
+    for task in ["thermalactive", "audioactive", "thermalpassive", "audiopassive", "resting"]:
 
-            # Load raw file
-            raw = mne.io.read_raw_fif(
-                opj(bidsroot,p, "eeg", p + "_task-" + task + "_cleanedeeg-raw.fif"),
-                preload=True,
-            )    
+        # Load raw file
+        raw = mne.io.read_raw_fif(
+            opj(bidsroot,p, "eeg", p + "_task-" + task + "_cleanedeeg-raw.fif"),
+            preload=True,
+        )    
 
-            # Make windows
-            epochs = mne.make_fixed_length_epochs(raw, duration=4, overlap=0, preload=True)
+        # Make windows
+        epochs = mne.make_fixed_length_epochs(raw, duration=4, overlap=0, preload=True)
 
-            # run autoreject
-            ar = AutoReject(
-                n_jobs = -1,
-                n_interpolate = [0],
-                random_state=42)
+        # run autoreject
+        ar = AutoReject(
+            n_jobs = -1,
+            n_interpolate = [0],
+            random_state=42)
 
-            epochs_clean, reject_log = ar.fit_transform(epochs, return_log=True) #fit transform
+        epochs_clean, reject_log = ar.fit_transform(epochs, return_log=True) #fit transform
 
-            # Get indices of rejected epochs #also get ratio of rejected epochs
-            rejected_epochs = len(np.where(reject_log.bad_epochs)[0])
+        # Get indices of rejected epochs #also get ratio of rejected epochs
+        rejected_epochs = len(np.where(reject_log.bad_epochs)[0])
 
-            #add row to statistics
-            excluded.loc[len(excluded)] = [p, task, rejected_epochs]
+        #add row to statistics
+        excluded.loc[len(excluded)] = [p, task, rejected_epochs]
 
-            if task == "thermalactive" or "thermalpassive" or "audioactive" or  "audiopassive":
-                dim = -3,
-            elif task == "resting":
-                dim = "nan"
+        if task == "thermalactive" or "thermalpassive" or "audioactive" or  "audiopassive":
+            dim = -3,
+        elif task == "resting":
+            dim = "nan"
 
-            # Get the average rating for each epoch
-            intensity = [np.mean(e[-2, :]) for e in epochs_clean]
-            rating = [np.mean(e[dim, :]) for e in epochs_clean]
-            temp = [np.mean(e[-1, :]) for e in epochs_clean]
+        # Get the average rating for each epoch
+        intensity = [np.mean(e[-2, :]) for e in epochs_clean]
+        rating = [np.mean(e[dim, :]) for e in epochs_clean]
+        temp = [np.mean(e[-1, :]) for e in epochs_clean]
 
-            # Get the average rating difference in each epoch
-            diff_stim = [np.max(e[-2, :]) - np.min(e[-2, :]) for e in epochs_clean]
-            diff_rate = [np.max(e[dim, :]) - np.min(e[dim, :]) for e in epochs_clean]
-            diff_temp = [np.max(e[-1, :]) - np.min(e[-1, :]) for e in epochs_clean]
+        # Get the average rating difference in each epoch
+        diff_stim = [np.max(e[-2, :]) - np.min(e[-2, :]) for e in epochs_clean]
+        diff_rate = [np.max(e[dim, :]) - np.min(e[dim, :]) for e in epochs_clean]
+        diff_temp = [np.max(e[-1, :]) - np.min(e[-1, :]) for e in epochs_clean]
 
-            # Add metadata
-            meta_data = pd.DataFrame(
-                {
-                    "participant_id": p,
-                    "task": task,
-                    "rating": rating,
-                    "temperature": temp,
-                    "epoch_num": np.arange(len(epochs_clean)),
-                    "intensity": intensity,
-                    "diff_rate": diff_rate,
-                    "diff_intensity": diff_stim,
-                    "diff_temperature": diff_temp,
-                    "reject_prop": 1 - (len(epochs_clean) / len(epochs)),
-                }
-            )
-            
-            # set metadata
-            epochs_clean.metadata = meta_data
-    
-            epochs_clean.resample(250)
+        # Add metadata
+        meta_data = pd.DataFrame(
+            {
+                "participant_id": p,
+                "task": task,
+                "rating": rating,
+                "temperature": temp,
+                "epoch_num": np.arange(len(epochs_clean)),
+                "intensity": intensity,
+                "diff_rate": diff_rate,
+                "diff_intensity": diff_stim,
+                "diff_temperature": diff_temp,
+                "reject_prop": 1 - (len(epochs_clean) / len(epochs)),
+            }
+        )
+        
+        # set metadata
+        epochs_clean.metadata = meta_data
 
-            if all_epochs is None:
-                all_epochs = epochs_clean
-            else:
-                all_epochs = mne.concatenate_epochs([all_epochs, epochs_clean])
+        epochs_clean.resample(250)
 
-            # Save statistics
-            excluded.to_csv(opj(derivpath,'epochs_clean', "excluded_epochs_autoreject.csv"), index=False)
-            
-        # Save the epochs object after each participant
-        cleaned_epo_path = opj(derivpath,'epochs_clean',  p +'_cleaned_epo.fif')
-        all_epochs.save(cleaned_epo_path, overwrite=True)
-            
-        # Explicitly delete objects to release memory
-        del raw, epochs, epochs_clean, reject_log, meta_data ,all_epochs
+        if all_epochs is None:
+            all_epochs = epochs_clean
+        else:
+            all_epochs = mne.concatenate_epochs([all_epochs, epochs_clean])
 
-    elif p == "sub-014":
-            # Loop tasks
-        for task in ["thermalactive", "audioactive", "thermalpassive", "resting"]:
-
-            # Load raw file
-            raw = mne.io.read_raw_fif(
-                opj(bidsroot,p, "eeg", p + "_task-" + task + "_cleanedeeg-raw.fif"),
-                preload=True,
-            )    
-
-            # Make windows
-            epochs = mne.make_fixed_length_epochs(raw, duration=4, overlap=0, preload=True)
-
-            # run autoreject
-            ar = AutoReject(
-                n_jobs = -1,
-                n_interpolate = [0],
-                random_state=42)
-
-            epochs_clean, reject_log = ar.fit_transform(epochs, return_log=True) #fit transform
-
-            # Get indices of rejected epochs #also get ratio of rejected epochs
-            rejected_epochs = len(np.where(reject_log.bad_epochs)[0])
-
-            #add row to statistics
-            excluded.loc[len(excluded)] = [p, task, rejected_epochs]
-
-            if task == "thermalactive" or "thermalpassive" or "audioactive" or  "audiopassive":
-                dim = -3,
-            elif task == "resting":
-                dim = "nan"
-
-            # Get the average rating for each epoch
-            intensity = [np.mean(e[-2, :]) for e in epochs_clean]
-            rating = [np.mean(e[dim, :]) for e in epochs_clean]
-            temp = [np.mean(e[-1, :]) for e in epochs_clean]
-
-            # Get the average rating difference in each epoch
-            diff_stim = [np.max(e[-2, :]) - np.min(e[-2, :]) for e in epochs_clean]
-            diff_rate = [np.max(e[dim, :]) - np.min(e[dim, :]) for e in epochs_clean]
-            diff_temp = [np.max(e[-1, :]) - np.min(e[-1, :]) for e in epochs_clean]
-
-            # Add metadata
-            meta_data = pd.DataFrame(
-                {
-                    "participant_id": p,
-                    "task": task,
-                    "rating": rating,
-                    "temperature": temp,
-                    "epoch_num": np.arange(len(epochs_clean)),
-                    "intensity": intensity,
-                    "diff_rate": diff_rate,
-                    "diff_intensity": diff_stim,
-                    "diff_temperature": diff_temp,
-                    "reject_prop": 1 - (len(epochs_clean) / len(epochs)),
-                }
-            )
-            
-            # set metadata
-            epochs_clean.metadata = meta_data
-    
-            epochs_clean.resample(250)
-
-            if all_epochs is None:
-                all_epochs = epochs_clean
-            else:
-                all_epochs = mne.concatenate_epochs([all_epochs, epochs_clean])
-
-            # Save statistics
-            excluded.to_csv(opj(derivpath,'epochs_clean', "excluded_epochs_autoreject.csv"), index=False)
-            
-        # Save the epochs object after each participant
-        cleaned_epo_path = opj(derivpath,'epochs_clean',  p +'_cleaned_epo.fif')
-        all_epochs.save(cleaned_epo_path, overwrite=True)
-            
-        # Explicitly delete objects to release memory
-        del raw, epochs, epochs_clean, reject_log, meta_data ,all_epochs
-
-    else:
-        # Loop tasks
-        for task in ["thermalactive", "audioactive", "thermalpassive", "audiopassive", "resting"]:
-
-            # Load raw file
-            raw = mne.io.read_raw_fif(
-                opj(bidsroot,p, "eeg", p + "_task-" + task + "_cleanedeeg-raw.fif"),
-                preload=True,
-            )    
-
-            # Make windows
-            epochs = mne.make_fixed_length_epochs(raw, duration=4, overlap=0, preload=True)
-
-            # run autoreject
-            ar = AutoReject(
-                n_jobs = -1,
-                n_interpolate = [0],
-                random_state=42)
-
-            epochs_clean, reject_log = ar.fit_transform(epochs, return_log=True) #fit transform
-
-            # Get indices of rejected epochs #also get ratio of rejected epochs
-            rejected_epochs = len(np.where(reject_log.bad_epochs)[0])
-
-            #add row to statistics
-            excluded.loc[len(excluded)] = [p, task, rejected_epochs]
-
-            if task == "thermalactive" or "thermalpassive" or "audioactive" or  "audiopassive":
-                dim = -3,
-            elif task == "resting":
-                dim = "nan"
-
-            # Get the average rating for each epoch
-            intensity = [np.mean(e[-2, :]) for e in epochs_clean]
-            rating = [np.mean(e[dim, :]) for e in epochs_clean]
-            temp = [np.mean(e[-1, :]) for e in epochs_clean]
-
-            # Get the average rating difference in each epoch
-            diff_stim = [np.max(e[-2, :]) - np.min(e[-2, :]) for e in epochs_clean]
-            diff_rate = [np.max(e[dim, :]) - np.min(e[dim, :]) for e in epochs_clean]
-            diff_temp = [np.max(e[-1, :]) - np.min(e[-1, :]) for e in epochs_clean]
-
-            # Add metadata
-            meta_data = pd.DataFrame(
-                {
-                    "participant_id": p,
-                    "task": task,
-                    "rating": rating,
-                    "temperature": temp,
-                    "epoch_num": np.arange(len(epochs_clean)),
-                    "intensity": intensity,
-                    "diff_rate": diff_rate,
-                    "diff_intensity": diff_stim,
-                    "diff_temperature": diff_temp,
-                    "reject_prop": 1 - (len(epochs_clean) / len(epochs)),
-                }
-            )
-            
-            # set metadata
-            epochs_clean.metadata = meta_data
-    
-            epochs_clean.resample(250)
-
-            if all_epochs is None:
-                all_epochs = epochs_clean
-            else:
-                all_epochs = mne.concatenate_epochs([all_epochs, epochs_clean])
-
-            # Save statistics
-            excluded.to_csv(opj(derivpath,'epochs_clean', "excluded_epochs_autoreject.csv"), index=False)
-            
-        # Save the epochs object after each participant
-        cleaned_epo_path = opj(derivpath,'epochs_clean',  p +'_cleaned_epo.fif')
-        all_epochs.save(cleaned_epo_path, overwrite=True)
-            
-        # Explicitly delete objects to release memory
-        del raw, epochs, epochs_clean, reject_log, meta_data ,all_epochs
+        # Save statistics
+        excluded.to_csv(opj(derivpath,'epochs_clean', "excluded_epochs_autoreject.csv"), index=False)
+        
+    # Save the epochs object after each participant
+    cleaned_epo_path = opj(derivpath,'epochs_clean',  p +'_cleaned_epo.fif')
+    all_epochs.save(cleaned_epo_path, overwrite=True)
+        
+    # Explicitly delete objects to release memory
+    del raw, epochs, epochs_clean, reject_log, meta_data ,all_epochs
 
 
 
