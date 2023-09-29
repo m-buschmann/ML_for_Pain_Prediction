@@ -31,9 +31,10 @@
     - confusion matrices: contains the confusion matrices from the classification task for all models
     - csvs: contains the files with scores, true labels, predicted labels and for standard ML the most common best parameters
     - logs: contains the tensorboard logs (accuracies, RMSE, r2). If there are several logs for one model, the last one is the latest. Inspect the logs either by running "tensorboard --logdir /path/to/log --port 6007" in a terminal or with the code tensorboard.py
-- folder "models": contains the models after training on whole data
-- folder "plots intensity and rating": contains the plots of comparision rating and intensity
-
+    - accuracies_and _MSE.ods: table of accuracy and RMSE scores
+    - testing_on_new_data_results: contains results of testing the models on Aly's data
+    - training_on_whole_data_results: contains results of training the models on the whole dataset
+      
 ### other:
 - EEG Markers of Pain.pptx: my powerpoint from the presentation
 
