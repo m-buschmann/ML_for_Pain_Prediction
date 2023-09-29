@@ -1,6 +1,9 @@
 # ML_for_Pain_Prediction
 
 ## overview
+
+! Bigger files (like the trained models) are saved in the projects folder on Compute Canada
+
 ### code: 
 - 0x_1xxx: code that processes the original data from McGill
 - 0x_2xxx: code that processes the new data from Aly
