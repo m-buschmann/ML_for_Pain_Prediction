@@ -5,6 +5,7 @@ logs/
 2logs/
 best_deep4netClassification/
 best_deep4netRegression/
+best_shallowFBCSPNetClassification/
 images/
 04models.py/
 plots intensity and rating/
