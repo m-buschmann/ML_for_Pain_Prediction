@@ -78,13 +78,13 @@
 ## example .sh file:   
 #!/bin/bash
 #SBATCH --time=3:00:00
-#SBATCH --account=def-mpcoll
+#SBATCH --account={}
 #SBATCH --gpus=1
 #SBATCH --cpus-per-task=40
 #SBATCH --mem=186G
-#SBATCH --mail-user=mathilda.buschmann.1@ulaval.ca
+#SBATCH --mail-user={}
 #SBATCH --mail-type=ALL
-#SBATCH --chdir=/lustre04/scratch/mabus103
+#SBATCH --chdir={}
 
 module load python/3.10
 
@@ -101,7 +101,7 @@ pip install --no-index --find-links=$SLURM_TMPDIR/eegdecode_venv_wheel -r $SLURM
 pip list
 
 #model type, within or between particiants, target
-python /lustre04/scratch/mabus103/ML_for_Pain_Prediction/04models_cc.py "deep4netRegression" "within" 'intensity'
+python ML_for_Pain_Prediction/04models_cc.py "deep4netRegression" "within" 'intensity'
 
 
 #models:
